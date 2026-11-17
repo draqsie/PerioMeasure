@@ -156,8 +156,15 @@ iletişim dili Türkçe.
 - **IPD** (interpupiller) = `|P_OD − P_OS|`.
 - Palpebral fissür alanı (mm²): kontur poligonu çizildiyse shoelace ×
   `mm_per_px²`.
-- İsteğe bağlı: TPS, kaş yüksekliği, superior/inferior skleral show, sağ–sol
-  farkları.
+- İsteğe bağlı (Faz 1'de uygulandı; tanımlar kullanıcı teyidi bekliyor):
+  - `TPS = (Kıvrım − Üst) · v` (üst kapak kenarından kapak kıvrımına)
+  - `Kaş yüksekliği = (Kaş alt sınırı − Pupil) · v` (pupilden kaşa)
+  - `SSS = (Üst − Limbus_üst) · v`; negatif = kapak limbusu örtüyor
+  - `ISS = (Limbus_alt − Alt) · v`; negatif = kapak limbusu örtüyor
+  - Sağ–sol farkları: her ölçüm için OD − OS.
+- Ek uyarılar: görüntü aynalanmış (`P_OD.x > P_OS.x`); lateral kantus
+  medialin lateralinde değil (`d·l ≤ 0`); PFH ≤ 0; kapak noktası pupil
+  dikeyinden > 1,0 mm uzakta (dikey ölçümleri etkilemez, yalnızca uyarı).
 
 ### 4.4 Belirsizlik
 - Her uzunluk L için iki bileşen ayrı ayrı raporlanır:
@@ -166,8 +173,17 @@ iletişim dili Türkçe.
 - Birleşik (onaylandı): `σ = √(σ_click² + σ_cal²)`.
 - **Arayüzde yalnızca birleşik değer** gösterilir (ör. `PFW 28,41 ± 0,07 mm`);
   bileşenler (`σ_click`, `σ_cal`, `σ`) CSV'de ayrı sütunlardır.
-- PFI (oran) belirsizliği: `σ_PFI = PFI × √((σ_PFH/PFH)² + (σ_PFW/PFW)²)`,
-  yalnızca tıklama bileşenleriyle (kalibrasyon ölçeği oranda sadeleşir).
+- PFI (oran) belirsizliği, kısmi türevlerle (PFH = 0'da da tanımlı):
+  `σ_PFI = √((σ_click/PFW)² + (PFH·σ_click/PFW²)²)`; kalibrasyon bileşeni 0
+  (ölçek oranda sadeleşir).
+- Kantal açı: `σ = atan(1 px / PFW_px)` derece; kalibrasyon bileşeni 0.
+- Alan: `σ_cal = 2·A·göreli_σ`; `σ_click = çevre × 1 px × mm_per_px²`
+  (çevre boyunca 1 piksellik bant).
+- Sağ–sol farkı: `σ_click = √(σ₁² + σ₂²)`; iki göz aynı ölçeği paylaştığı
+  için kalibrasyon hatası tam koreledir: `σ_cal = |fark| × göreli_σ`.
+- Kalibrasyonun göreli σ'sı, elips oturtmanın kovaryansından gelir
+  (`σ² (JᵀJ)⁻¹`, `σ² = RSS/(n−5)`); Monte Carlo testiyle doğrulandı. Tam
+  daire için yönelim belirsiz olduğundan θ sabit tutularak hesaplanır.
 
 ---
 
@@ -200,8 +216,20 @@ iletişim dili Türkçe.
 - `com.periomeasure.core` — **saf Java, ImageJ'ye bağımlı DEĞİL**: geometri,
   piksel konvansiyonu, elips oturtma, kalibrasyon, ölçümler, belirsizlik.
   Bir test, bu paketin `ij.*` import etmediğini denetler.
-- `com.periomeasure.synthetic` — sentetik test görüntüsü üretici (saf Java /
-  `java.awt.image`).
+  Ana sınıflar: `Vec2`, `PixelConvention`, `Ellipse` (Eberly nokta–elips
+  mesafesi), `EllipseFitter` (Halir–Flusser cebirsel → Levenberg–Marquardt
+  geometrik, analitik Jacobian; Kåsa daire yedeği), `Calibration`, `Scale`,
+  `ReferenceAxes`, `EyeLandmarks`, `MeasurementEngine`, `Quantity`
+  (değer + σ_click + σ_cal), `MeasureId` (öncelik sırası: PFI, ICD, PFW,
+  PFH, …), `Warning`/`WarningCode`. `ArchitectureTest` bu paketin `ij.*`,
+  `java.awt`, `javax.*` import etmediğini denetler.
+- `com.periomeasure.synthetic` — sentetik test görüntüsü üretici (ImageJ'siz;
+  `java.awt.image`). `FaceModel` (mm, yüz düzlemi: X hastanın soluna, Y
+  yukarı), `SyntheticScene` (aynalama → y çevirme → roll → ölçek → öteleme),
+  `GroundTruth` (ölçüm motorunu KULLANMADAN, yüz düzleminde bağımsız
+  beklenen değerler), `SyntheticRenderer` (etiket tam alan kapsamasıyla,
+  8×8 süper örnekleme), `SyntheticImageWriter` (PNG + doğruluk CSV'si),
+  `SyntheticImageTool` (standart set → `output/synthetic`).
 - `com.periomeasure.io` — CSV, karşılaştırma, tekrar modu dışa aktarımı.
 - `com.periomeasure.i18n` — TR/EN metinler. Tek dosya:
   `src/main/resources/com/periomeasure/i18n/messages.properties`
@@ -221,6 +249,11 @@ iletişim dili Türkçe.
 mvnw.cmd clean verify                 # derle + tüm testler + jar (target\PerioMeasure_.jar)
 mvnw.cmd clean verify -Pfiji-runtime  # testleri Fiji'nin gömülü Java 8'inde çalıştır
 ```
+Sentetik görüntü seti (Faz 2'de Fiji'de denemek için; `output/` git dışında):
+```
+"C:\Users\Lenovo\Fiji.app\java\win64\zulu8.86.0.25-ca-fx-jdk8.0.452-win_x64\bin\java.exe" "-Djava.awt.headless=true" -cp target\classes com.periomeasure.synthetic.SyntheticImageTool
+```
+(PowerShell'de `-D...` argümanı tırnak içinde olmalı, yoksa noktadan bölünür.)
 Kurulum: `target\PerioMeasure_.jar` → `C:\Users\Lenovo\Fiji.app\plugins\`
 (eski sürümün üzerine yazılır; jar adı sürüm içermez ki iki kopya oluşmasın).
 
@@ -243,12 +276,28 @@ rules.md (ilk adı CLAUDE.md), README taslağı, TR/EN metin altyapısı, `Bilgi
 13 test (JDK 25 ve Fiji Java 8'de geçiyor). Fiji stable kuruldu ve eklenti
 Fiji içinde çalıştırılarak doğrulandı.
 
-**Sıradaki:** Faz 1 — hesaplama çekirdeği + testler + sentetik görüntü üretici.
+**Tamamlanan:** Faz 1 (2026-11-17) — saf Java hesaplama çekirdeği ve
+sentetik görüntü üretici, TDD ile (her modülde önce başarısız test).
+108 test, JDK 25 ve Fiji Java 8'de geçiyor. Uçtan uca: 162 senaryo
+(3 yüz × 3 ölçek × 3 roll × 3 etiket eğikliği × aynalı/değil) kesin girdiyle
+hata < 1e-6 mm (kabul ölçütü 0,05 mm). Gürültülü etiket tıklamalarında
+(σ = 0,5 px, 24 nokta, 600 px etiket) raporlanan σ_cal gerçek hatayı ~%95
+kapsıyor; en büyük IPD hatası < 0,15 mm. Mutasyon kontrolü yapıldı: lateral
+yön işareti ve piksel köşe/merkez hatası bilerek eklendiğinde testler
+yakaladı. README İngilizceye çevrildi.
+
+**Sıradaki:** Faz 2 — manuel kalibrasyon + landmark UI + CSV.
+
+**Faz 1'den öğrenilen (Faz 2 için önemli):** Uzun mesafelerin (IPD, ICD)
+doğruluğunu çoğunlukla etiketin görüntüdeki piksel boyutu ve kenar tıklama
+sayısı belirler. Etiket ≥ 600 px ve ≥ 16–24 kenar noktası önerilmeli.
 
 **Bekleyen sorular / işler:**
 - Kurallar dosyası kullanıcının kararıyla `rules.md` olarak kalıyor
   (2026-11-17). Claude Code bu adı otomatik okumaz; her oturum başta bu
   dosyayı açıkça okumalıdır.
+- İsteğe bağlı ölçüm tanımlarının (TPS, kaş yüksekliği, SSS/ISS; bkz. 4.3)
+  kullanıcı tarafından teyidi.
 - Kullanıcı `git init` yapacak.
 - Proje klasörü OneDrive altında (`OneDrive\Desktop\PerioMeasure`);
   `samples/` buraya konursa fotoğraflar buluta gider. Kullanıcıya taşıma
@@ -258,8 +307,9 @@ Fiji içinde çalıştırılarak doğrulandı.
 ---
 
 ## 9. Fazlar
-- **Faz 0:** İskelet. ✅ (kullanıcının Fiji'de denemesi ve commit'i bekleniyor)
-- **Faz 1:** Hesaplama çekirdeği + testler (UI yok) + sentetik görüntü üretici.
+- **Faz 0:** İskelet. ✅
+- **Faz 1:** Hesaplama çekirdeği + testler (UI yok) + sentetik görüntü üretici. ✅
+  (kullanıcının commit'i bekleniyor)
 - **Faz 2:** Manuel kalibrasyon + landmark UI + PFW, PFH, MRD1, MRD2,
   PFH/PFW, kantal açı + CSV + Fiji kurulum talimatı. Sentetik görüntülerle
   denenebilir.

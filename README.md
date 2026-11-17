@@ -1,139 +1,151 @@
 # PerioMeasure
 
-Fiji/ImageJ için perioküler ölçüm eklentisi. Hekim, yüz fotoğrafında
-landmark'ları tıklar; eklenti kalibrasyonu ve ölçümleri deterministik olarak
-hesaplar (PFI, ICD, PFW, PFH, MRD1, MRD2, PFH/PFW ve diğerleri).
+A Fiji/ImageJ plugin for periocular measurements on facial photographs. The
+clinician clicks the landmarks; the plugin computes the calibration and all
+measurements deterministically (PFI, ICD, PFW, PFH, MRD1, MRD2, canthal angle
+and more).
 
-> ⚠️ **Yalnızca araştırma amaçlıdır; tıbbi cihaz değildir.** Klinik tanı veya
-> tedavi kararı için tek başına kullanılmamalıdır. Sonuçlar, kullanan
-> araştırmacının doğrulama protokolüyle (aşağıda) teyit edilmelidir.
+> ⚠️ **For research use only; not a medical device.** Do not use it on its own
+> for clinical diagnosis or treatment decisions. Results must be confirmed by
+> the researcher's own validation protocol (see below).
 
-**Geliştirme durumu:** Faz 0 (iskelet). Menüde şimdilik yalnızca
-`Bilgi / About` komutu var. Ölçüm arayüzü Faz 2'de gelecek.
+**Development status:** Phase 1 complete (calculation core, fully tested,
+with a synthetic image generator). The menu currently contains only the
+`Bilgi / About` command; the measurement interface arrives in Phase 2. The user interface defaults to Turkish and can be switched to
+English.
 
 ---
 
-## 1. Kurulum
+## 1. Installation
 
-### Gereksinimler
-- **Fiji** (https://fiji.sc). "Stable" sürümü (Java 8) ve yeni sürümler
-  (Java 21) desteklenir; eklenti Java 8 uyumlu derlenir.
-- Kaynak koddan derlemek için **JDK 17 veya üstü**. Maven kurmanız
-  **gerekmez**: proje Maven Wrapper (`mvnw.cmd`) içerir. Wrapper, ilk
-  çalıştırmada sabit sürüm Maven'i indirir ve SHA-256 ile doğrular.
+### Requirements
+- **Fiji** (https://fiji.sc). Both the "stable" build (Java 8) and newer
+  builds (Java 21) are supported; the plugin is compiled for Java 8.
+- To build from source: **JDK 17 or newer**. You do **not** need to install
+  Maven: the project ships the Maven Wrapper (`mvnw.cmd`), which downloads a
+  pinned Maven version on first use and verifies it with SHA-256.
 
-### Derleme
+### Build
 ```bat
 mvnw.cmd clean verify
 ```
-Tüm testler geçerse `target\PerioMeasure_.jar` oluşur. Test geçmezse jar
-oluşmaz.
+If every test passes, `target\PerioMeasure_.jar` is produced. If any test
+fails, no jar is produced.
 
-### Fiji'ye kurulum
-1. Fiji açıksa kapatın.
-2. `target\PerioMeasure_.jar` dosyasını Fiji'nin `plugins\` klasörüne
-   kopyalayın (ör. `C:\Users\<kullanıcı>\Fiji.app\plugins\`).
-   Güncellemede eski dosyanın **üzerine yazın**. Jar adı sürüm içermez, böylece
-   iki kopya oluşmaz.
-3. Fiji'yi açın: **Plugins › PerioMeasure › Bilgi / About**. Pencerede
-   sürüm numarası görünüyorsa kurulum tamamdır.
+### Install into Fiji
+1. Close Fiji if it is running.
+2. Copy `target\PerioMeasure_.jar` into Fiji's `plugins\` folder
+   (e.g. `C:\Users\<user>\Fiji.app\plugins\`). When upgrading, **overwrite**
+   the old file. The jar name has no version number, so two copies can never
+   coexist.
+3. Start Fiji and choose **Plugins › PerioMeasure › Bilgi / About**. If the
+   window shows the version number, installation is complete.
 
 ---
 
-## 2. Kullanım (Faz 2'de tamamlanacak)
+## 2. Usage (to be completed in Phase 2)
 
-1. Fotoğrafı açın. Hasta ID, tarih, göz (OD/OS/her ikisi), Pre-op/Post-op
-   bilgilerini girin.
-2. **Kalibrasyon:** alın orta hattındaki 24,0 mm çaplı dairesel etiket.
-   - Otomatik (önerilen): etiketin etrafına kaba bir dikdörtgen çizin.
-   - Manuel: etiketin kenarına en az 8 nokta tıklayın.
-3. **Landmark'lar:** her göz için ekrandaki talimatla sırayla pupil merkezi
-   (veya korneal ışık refleksi), üst kapak kenarı, alt kapak kenarı, medial
-   kantus, lateral kantus. Noktalar sürüklenerek düzeltilebilir; Undo vardır.
-4. **Sonuçlar:** tablo + CSV (+ anotasyonlu PNG ve ROI seti, Faz 3).
+1. Open the photograph. Enter patient ID, date, eye (OD / OS / both) and
+   pre-op / post-op.
+2. **Calibration:** a circular sticker of 24.0 mm diameter on the forehead
+   midline.
+   - Automatic (recommended): draw a rough rectangle around the sticker.
+   - Manual: click at least 8 points on the sticker edge.
+3. **Landmarks:** for each eye, following the on-screen instructions: pupil
+   centre (or corneal light reflex), upper lid margin, lower lid margin,
+   medial canthus, lateral canthus. Points can be dragged to correct them;
+   Undo is available.
+4. **Results:** table + CSV (+ annotated PNG and ROI set in Phase 3).
 
-### Ana ölçümler
+### Main measurements
 
-| Kısaltma | Ölçüm | Tanım |
+| Abbreviation | Measurement | Definition |
 |---|---|---|
-| PFI | Palpebral fissür indeksi | PFH / PFW |
-| ICD | İnterkantal mesafe | İki medial kantus arası Öklid mesafe |
-| PFW | Palpebral fissür genişliği | \|LC − MC\| |
-| PFH | Palpebral fissür yüksekliği | Üst ve alt kapak kenarı arası, dikey eksende |
-| MRD1 | Margin-reflex distance 1 | Pupil merkezinden üst kapağa (işaretli) |
-| MRD2 | Margin-reflex distance 2 | Pupil merkezinden alt kapağa |
-| Kantal açı | Kantal eğim | MC→LC doğrusunun interpupiller eksenle açısı; LC yukarıdaysa + |
+| PFI | Palpebral fissure index | PFH / PFW (dimensionless ratio) |
+| ICD | Intercanthal distance | Euclidean distance between the two medial canthi |
+| PFW | Palpebral fissure width | \|LC − MC\| |
+| PFH | Palpebral fissure height | Upper to lower lid margin, along the vertical axis |
+| MRD1 | Margin–reflex distance 1 | Pupil centre to upper lid margin (signed) |
+| MRD2 | Margin–reflex distance 2 | Pupil centre to lower lid margin |
+| Canthal angle | Canthal tilt | Angle of the MC→LC line to the interpupillary axis; positive if LC is higher |
 
-Her uzunluk ekranda tek bir hata payıyla gösterilir (ör. `PFW 28,41 ± 0,07 mm`).
-Bu pay iki kaynağı birleştirir: tıklama hassasiyeti (1 piksel) ve
-kalibrasyon etiketinin ölçülme hassasiyeti. Ayrıntılı bileşenler CSV'dedir.
+PFI is shown as a ratio together with the lengths it is computed from, e.g.
+`PFI 0.35 ± 0.01 (PFH 9.80 mm / PFW 28.00 mm)`.
 
-Kesin matematiksel tanımlar `rules.md` dosyasının 4. bölümündedir.
+Every length is shown with a single uncertainty, e.g. `PFW 28.41 ± 0.07 mm`.
+It combines two sources: click precision (1 pixel) and the precision with
+which the calibration sticker was measured. The individual components are in
+the CSV.
 
----
-
-## 3. Fotoğraf çekim protokolü
-
-Pre-op ve post-op karşılaştırması ancak çekim koşulları aynıysa geçerlidir.
-
-- **Mesafe:** ≥ 1 m (perspektif bozulmasını azaltır).
-- **Odak uzaklığı:** ≥ 85 mm (35 mm eşdeğeri). Geniş açı ve telefon ön
-  kamerası kullanmayın.
-- **Baş pozisyonu:** Frankfort horizontal düzlemi yere paralel; baş
-  döndürülmemiş, eğilmemiş.
-- **Bakış:** primer pozisyon, karşıya; kamera göz hizasında.
-- **Kalibrasyon etiketi:** 24,0 mm çaplı, **mat** (parlamayan), cilde zıt
-  renkte dairesel etiket; alın orta hattına, gözlerle yaklaşık aynı düzleme,
-  kırışıksız yapıştırılır.
-- **Işık:** düzgün, gölgesiz; korneal ışık refleksi görünür olmalı.
-- **Çözünürlük:** görüntü genişliği ≥ 2000 px; etiket çapı görüntüde
-  ≥ 150 px. En yüksek JPEG kalitesi veya kayıpsız format (TIFF/PNG).
-- **Pre/post:** aynı kamera, lens, mesafe, ışık ve düzenek.
+The exact mathematical definitions are in section 4 of `rules.md`.
 
 ---
 
-## 4. Veri gizliliği ve anonimleştirme
+## 3. Photography protocol
 
-- Hasta fotoğrafları **yalnızca yerel bilgisayarda** saklanmalıdır.
-  OneDrive, Google Drive, Dropbox, iCloud gibi **bulut senkronlu klasörlere
-  koymayın**. Bu proje klasörü de böyle bir klasördeyse fotoğrafları başka
-  bir yerel klasörde tutun.
-- Dosya adlarında hasta adı veya TC kimlik no kullanmayın; çalışma kodu
-  kullanın (ör. `P017_pre_2026-03-02.jpg`). Kod ↔ kimlik eşleştirme listesini
-  ayrı ve şifreli tutun.
-- Fotoğraflardaki EXIF meta verisini (tarih, GPS, kamera seri no) paylaşmadan
-  önce silin.
-- Eklentinin CSV'sinde dosya adı yerine dosya adının **hash'i** saklanır.
-- Bu kod deposuna hasta verisi (fotoğraf, CSV, ROI, PNG) **asla** eklenmez;
-  `.gitignore` bunları dışarıda tutar.
+A pre-op / post-op comparison is valid only if the photographs are taken
+under the same conditions.
 
----
-
-## 5. Doğrulama protokolü (taslak; Faz 5'te raporlanacak)
-
-1. **Sentetik doğrulama (otomatik):** bilinen ölçekte 24 mm daire ve bilinen
-   konumda landmark'lar içeren, farklı rotasyon/eğim/çözünürlükte üretilmiş
-   görüntüler. Kabul ölçütü: uçtan uca hata < 0,05 mm. Her derlemede
-   `mvnw.cmd verify` ile çalışır.
-2. **Fantom / cetvel fotoğrafı:** etiket düzlemine yerleştirilmiş milimetrik
-   cetvel veya bilinen ölçülü desen, klinik çekim düzeneğiyle fotoğraflanır;
-   bilinen mesafeler ölçülüp gerçek değerle karşılaştırılır.
-3. **Gözlemci içi tekrarlanabilirlik:** aynı fotoğrafta 3 bağımsız işaretleme
-   (tekrar modu); %CV < 5.
-4. **Gözlemciler arası güvenilirlik:** ≥ 2 gözlemci; ICC (tekrar modunun uzun
-   format çıktısı).
-5. **Yöntem karşılaştırması:** klasik elle ImageJ ölçümüyle Bland–Altman
-   analizi.
+- **Distance:** ≥ 1 m (reduces perspective distortion).
+- **Focal length:** ≥ 85 mm (35 mm equivalent). Do not use wide-angle lenses
+  or a phone's front camera.
+- **Head position:** Frankfort horizontal plane parallel to the floor; head
+  neither turned nor tilted.
+- **Gaze:** primary position, looking straight ahead; camera at eye level.
+- **Calibration sticker:** circular, 24.0 mm diameter, **matte**
+  (non-reflective), in a colour that contrasts with skin; placed on the
+  forehead midline, roughly in the same plane as the eyes, without wrinkles.
+- **Lighting:** even and shadow-free; the corneal light reflex must be
+  visible.
+- **Resolution:** image width ≥ 2000 px; sticker diameter in the image
+  ≥ 150 px. Highest JPEG quality or a lossless format (TIFF/PNG).
+- **Pre/post:** same camera, lens, distance, lighting and setup.
 
 ---
 
-## 6. Geliştirici notları
+## 4. Data privacy and anonymisation
+
+- Patient photographs must be stored **on the local computer only**. Do
+  **not** put them in cloud-synchronised folders (OneDrive, Google Drive,
+  Dropbox, iCloud). If this project folder is inside such a folder, keep the
+  photographs in a different local folder.
+- Do not use patient names or national ID numbers in file names; use a study
+  code (e.g. `P017_pre_2026-03-02.jpg`). Keep the code ↔ identity key list
+  separate and encrypted.
+- Remove EXIF metadata (date, GPS, camera serial number) before sharing
+  photographs.
+- The plugin's CSV stores a **hash** of the file name instead of the file
+  name itself.
+- Patient data (photographs, CSV, ROI, PNG) is **never** added to this code
+  repository; `.gitignore` keeps it out.
+
+---
+
+## 5. Validation protocol (draft; reported in Phase 5)
+
+1. **Synthetic validation (automatic):** generated images with a 24 mm circle
+   at a known scale and landmarks at known positions, at various rotations,
+   tilts and resolutions. Acceptance criterion: end-to-end error < 0.05 mm.
+   Runs on every build with `mvnw.cmd verify`.
+2. **Phantom / ruler photograph:** a millimetre ruler or a pattern of known
+   dimensions placed in the sticker plane is photographed with the clinical
+   setup; known distances are measured and compared with their true values.
+3. **Intra-observer repeatability:** 3 independent markings of the same
+   photograph (repeat mode); %CV < 5.
+4. **Inter-observer reliability:** ≥ 2 observers; ICC (from the long-format
+   output of repeat mode).
+5. **Method comparison:** Bland–Altman analysis against conventional manual
+   ImageJ measurement.
+
+---
+
+## 6. Developer notes
 
 ```bat
-mvnw.cmd clean verify                 :: derleme + tüm testler + jar
-mvnw.cmd clean verify -Pfiji-runtime  :: testleri Fiji'nin kendi Java 8'inde çalıştır
+mvnw.cmd clean verify                 :: build + all tests + jar
+mvnw.cmd clean verify -Pfiji-runtime  :: run the tests on Fiji's own Java 8
 ```
-- Testler Türkçe yerel ayarla (`tr_TR`) çalışır; ondalık virgül hataları
-  böylece yakalanır.
-- Derleme uyarıları hata sayılır; tüm Maven eklenti sürümleri sabittir.
-- Proje kuralları ve ölçüm tanımları: [`rules.md`](rules.md).
+- Tests run with a Turkish default locale (`tr_TR`) so that decimal-comma
+  bugs are caught.
+- Compiler warnings are errors; all Maven plugin versions are pinned.
+- Project rules and measurement definitions: [`rules.md`](rules.md).
