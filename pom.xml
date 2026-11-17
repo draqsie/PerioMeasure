@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.periomeasure</groupId>
+  <artifactId>periomeasure</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>PerioMeasure</name>
+  <description>
+    Fiji/ImageJ plugin for deterministic periocular measurements
+    (PFI, ICD, PFW, PFH, MRD1, MRD2) on facial photographs.
+    Research use only; not a medical device.
+  </description>
+
+  <properties>
+    <!-- Bytecode target = the Java version bundled with Fiji stable (Java 8).
+         Java 8 bytecode also runs on newer Fiji builds (Java 21). -->
+    <maven.compiler.release>8</maven.compiler.release>
+
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <project.build.propertiesEncoding>UTF-8</project.build.propertiesEncoding>
+    <!-- Reproducible builds: identical sources give an identical jar. -->
+    <project.build.outputTimestamp>2026-11-17T00:00:00Z</project.build.outputTimestamp>
+
+    <!-- Must match the ij.jar shipped with Fiji (Fiji.app/jars/ij-1.54p.jar). -->
+    <imagej1.version>1.54p</imagej1.version>
+    <junit.version>5.14.4</junit.version>
+
+    <!-- Path to Fiji's bundled java.exe; used only by the 'fiji-runtime' profile. -->
+    <fiji.java>C:/Users/Lenovo/Fiji.app/java/win64/zulu8.86.0.25-ca-fx-jdk8.0.452-win_x64/bin/java.exe</fiji.java>
+
+    <!-- Tests always run with a Turkish default locale to expose
+         decimal-comma and Turkish-I bugs. -->
+    <test.jvm.args>-Duser.language=tr -Duser.country=TR -Dfile.encoding=UTF-8 -Djava.awt.headless=true</test.jvm.args>
+  </properties>
+
+  <repositories>
+    <repository>
+      <id>scijava.public</id>
+      <url>https://maven.scijava.org/content/groups/public</url>
+      <releases>
+        <enabled>true</enabled>
+        <checksumPolicy>fail</checksumPolicy>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- Provided by Fiji at runtime; never bundled into our jar. -->
+    <dependency>
+      <groupId>net.imagej</groupId>
+      <artifactId>ij</artifactId>
+      <version>${imagej1.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-launcher</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <!-- Fixed name without version: the underscore lets ImageJ load it, and
+         a stable name means an upgrade overwrites the old jar instead of
+         leaving two copies (duplicate menu commands) in Fiji/plugins. -->
+    <finalName>PerioMeasure_</finalName>
+
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+        <includes>
+          <include>**/periomeasure-version.properties</include>
+        </includes>
+      </resource>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>false</filtering>
+        <excludes>
+          <exclude>**/periomeasure-version.properties</exclude>
+        </excludes>
+      </resource>
+    </resources>
+
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>3.5.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>3.5.0</version>
+          <configuration>
+            <propertiesEncoding>UTF-8</propertiesEncoding>
+          </configuration>
+        </plugin>
+        <plugin>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.15.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.5.6</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>3.5.1</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-install-plugin</artifactId>
+          <version>3.2.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <version>3.2.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-site-plugin</artifactId>
+          <version>3.22.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>3.7.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-wrapper-plugin</artifactId>
+          <version>3.3.4</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+      <plugin>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-build-environment</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>[3.9.16,4)</version>
+                  <message>Use the Maven Wrapper: mvnw.cmd verify</message>
+                </requireMavenVersion>
+                <requireJavaVersion>
+                  <version>[17,)</version>
+                  <message>A JDK 17 or newer is required to build (bytecode still targets Java 8).</message>
+                </requireJavaVersion>
+                <requirePluginVersions>
+                  <banLatest>true</banLatest>
+                  <banRelease>true</banRelease>
+                  <banSnapshots>true</banSnapshots>
+                </requirePluginVersions>
+                <dependencyConvergence/>
+                <requireUpperBoundDeps/>
+                <banDuplicatePomDependencyVersions/>
+              </rules>
+              <fail>true</fail>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <release>${maven.compiler.release}</release>
+          <showWarnings>true</showWarnings>
+          <failOnWarning>true</failOnWarning>
+          <compilerArgs>
+            <!-- All lint warnings are errors, except the JDK notice that
+                 release 8 is "obsolete" (it is still fully supported). -->
+            <arg>-Xlint:all,-options</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <argLine>${test.jvm.args}</argLine>
+          <trimStackTrace>false</trimStackTrace>
+          <failIfNoTests>true</failIfNoTests>
+          <runOrder>random</runOrder>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!-- mvnw.cmd verify -Pfiji-runtime
+         Runs the whole test suite on Fiji's own bundled Java 8 runtime,
+         i.e. the exact JVM that will execute the plugin. -->
+    <profile>
+      <id>fiji-runtime</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <jvm>${fiji.java}</jvm>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

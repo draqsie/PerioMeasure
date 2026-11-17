@@ -1,0 +1,70 @@
+# =====================================================================
+# PerioMeasure — .gitignore
+# PATIENT DATA MUST NEVER ENTER THE REPOSITORY (see rules.md).
+# =====================================================================
+
+# --- Patient data and outputs ---------------------------------------
+samples/
+output/
+data/
+patients/
+
+# --- Images (any image, including synthetic test images generated at test time)
+*.jpg
+*.jpeg
+*.JPG
+*.JPEG
+*.png
+*.PNG
+*.tif
+*.tiff
+*.TIF
+*.TIFF
+*.heic
+*.HEIC
+*.heif
+*.bmp
+*.gif
+*.dng
+*.cr2
+*.nef
+*.arw
+*.raw
+
+# --- ROI sets, measurement tables, archives --------------------------
+*.zip
+*.roi
+*.csv
+*.tsv
+*.xlsx
+*.xls
+
+# --- Build output -----------------------------------------------------
+target/
+*.class
+*.log
+hs_err_pid*
+
+# --- IDE / editor -----------------------------------------------------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+.metadata/
+bin/
+nbproject/
+nbbuild/
+nbdist/
+.nb-gradle/
+*.swp
+*~
+
+# --- OS -----------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini

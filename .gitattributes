@@ -1,0 +1,18 @@
+# Normalise line endings so builds behave the same on every machine.
+* text=auto eol=lf
+
+# Windows scripts must keep CRLF.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Unix wrapper script must keep LF.
+mvnw text eol=lf
+
+# Binary files (never expected in the repo, but declared for safety).
+*.jar binary
+*.zip binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.tif binary
+*.tiff binary
