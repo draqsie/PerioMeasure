@@ -31,6 +31,14 @@ patients/
 *.arw
 *.raw
 
+# The ONLY images allowed in the repository: the app icons of the web page
+# (drawn by AppIcon from code; regenerate with "AppIcon --web docs/icons").
+# Never put any other file into docs/icons.
+!docs/icons/apple-touch-icon.png
+!docs/icons/icon-192.png
+!docs/icons/icon-512.png
+!docs/icons/favicon-32.png
+
 # --- ROI sets, measurement tables, archives --------------------------
 *.zip
 *.roi

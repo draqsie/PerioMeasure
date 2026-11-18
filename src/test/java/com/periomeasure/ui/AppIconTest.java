@@ -45,6 +45,18 @@ class AppIconTest {
     }
 
     @Test
+    void homeScreenIconIsFullyOpaqueBecauseIosRoundsTheCornersItself() throws Exception {
+        BufferedImage b = AppIcon.renderSquare(180);
+        for (int[] p : new int[][] {{0, 0}, {179, 0}, {0, 179}, {179, 179}, {90, 2}}) {
+            assertEquals(255, b.getRGB(p[0], p[1]) >>> 24, p[0] + "," + p[1]);
+        }
+        File dir = new File("target/test-output/webicons");
+        AppIcon.writeWebIcons(dir);
+        assertEquals(180, ImageIO.read(new File(dir, "apple-touch-icon.png")).getWidth());
+        assertEquals(512, ImageIO.read(new File(dir, "icon-512.png")).getWidth());
+    }
+
+    @Test
     void renderingIsDeterministic() {
         BufferedImage a = AppIcon.render(48);
         BufferedImage b = AppIcon.render(48);

@@ -419,6 +419,20 @@ da sınar. 234 test JDK 25 ve Fiji Java 8'de geçiyor; `--selftest` PASS
 geçici klasörde denendi (masaüstüne yazılmadı); kullanıcının çalıştırması
 bekleniyor.
 
+**Web / iPhone-iPad-Mac (2026-11-18, kullanıcı kararı):** Uygulama GitHub
+Pages ile web sayfası olarak yayınlanacak (depo herkese açık; kullanıcı
+onayladı), ana ekrana eklenip uygulama gibi kullanılacak. Herkes kendi
+sonuçlarını kendi cihazında tutar; sunucu yok, fotoğraf cihazdan çıkmaz.
+Şimdilik `docs/` = kurulabilir kabuk sayfa (`index.html`, `manifest`,
+`icons/`; Pages kaynağı: main / docs). `.gitignore`'da YALNIZCA
+`docs/icons/` altındaki 4 simge PNG'sine izin var (`AppIcon --web docs/icons`
+ile üretilir); başka hiçbir görüntü depoya girmez. Git geçmişi kontrol
+edildi: hasta verisi yok. Ölçüm ekranı ARA VERİLDİ (kullanıcı isteği): `web/`
+klasöründe TeaVM 0.16.0 denemesi çalışıyor (Java çekirdeği → JavaScript;
+elips uydurma, metinler, sürüm Java ile aynı sonuç). Devamında: WebApi
+(MeasurementSession + ResultCsv), Java↔JS çapraz test, dokunmatik arayüz,
+WebKit (Safari motoru) testleri, GitHub Actions ile yayın.
+
 **Sıradaki:** Faz 3 — anotasyonlu PNG, ROI kaydet/aç, pre/post
 karşılaştırma, tekrar modu.
 

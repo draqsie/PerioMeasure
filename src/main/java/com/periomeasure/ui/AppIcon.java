@@ -61,6 +61,18 @@ public final class AppIcon {
 
     /** Draws the icon at {@code size} x {@code size} pixels (transparent outside the tile). */
     static BufferedImage render(int size) {
+        return draw(size, false);
+    }
+
+    /**
+     * Full-bleed, fully opaque square for iPhone / iPad home screens: iOS
+     * rounds the corners itself and would fill transparent corners with black.
+     */
+    static BufferedImage renderSquare(int size) {
+        return draw(size, true);
+    }
+
+    private static BufferedImage draw(int size, boolean square) {
         BufferedImage img = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = img.createGraphics();
         try {
@@ -72,7 +84,8 @@ public final class AppIcon {
             boolean small = size <= 24;
 
             double m = 0.03;
-            Shape tile = new RoundRectangle2D.Double(m, m, 1 - 2 * m, 1 - 2 * m, 0.44, 0.44);
+            Shape tile = square ? new java.awt.geom.Rectangle2D.Double(0, 0, 1, 1)
+                    : new RoundRectangle2D.Double(m, m, 1 - 2 * m, 1 - 2 * m, 0.44, 0.44);
             g.setPaint(new GradientPaint(0, 0, TILE_TOP, 0, 1, TILE_BOTTOM));
             g.fill(tile);
 
@@ -204,9 +217,22 @@ public final class AppIcon {
         g.drawString(t, tx, ty);
     }
 
+    /** Writes the icons the web page needs (home screen, browser tab) into {@code dir}. */
+    static void writeWebIcons(File dir) throws IOException {
+        Files.createDirectories(dir.toPath());
+        ImageIO.write(renderSquare(180), "png", new File(dir, "apple-touch-icon.png"));
+        ImageIO.write(renderSquare(192), "png", new File(dir, "icon-192.png"));
+        ImageIO.write(renderSquare(512), "png", new File(dir, "icon-512.png"));
+        ImageIO.write(render(32), "png", new File(dir, "favicon-32.png"));
+    }
+
     public static void main(String[] args) throws IOException {
+        if (args.length == 2 && "--web".equals(args[0])) {
+            writeWebIcons(new File(args[1]));
+            return;
+        }
         if (args.length < 1 || args.length > 2) {
-            System.err.println("usage: AppIcon <file.ico> [preview.png]");
+            System.err.println("usage: AppIcon <file.ico> [preview.png]  |  AppIcon --web <dir>");
             System.exit(2);
         }
         writeIco(new File(args[0]));

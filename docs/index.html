@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PerioMeasure</title>
+<meta name="description" content="Periocular measurements on facial photographs. Research use only.">
+<meta name="theme-color" content="#1F7A8C">
+<!-- Home-screen app on iPhone / iPad / Mac (Safari: Share > Add to Home Screen / Add to Dock) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PerioMeasure">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  :root {
+    --bg: #F4F6F7;
+    --card: #FFFFFF;
+    --border: #DDE3E6;
+    --text: #1B2529;
+    --muted: #5B6B72;
+    --accent: #1F7A8C;
+    --accent-soft: #E3F1F4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12181B;
+      --card: #1B2429;
+      --border: #2C3940;
+      --text: #E6EDF0;
+      --muted: #9AAAB1;
+      --accent: #4FB3C4;
+      --accent-soft: #1A3339;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+             max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+  main { max-width: 640px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 16px; margin: 8px 0 24px; }
+  header img { width: 72px; height: 72px; border-radius: 16px; flex: none; }
+  h1 { font-size: 28px; line-height: 1.2; margin: 0; }
+  .sub { color: var(--muted); margin: 2px 0 0; }
+  .lang { margin-left: auto; align-self: flex-start; display: flex; flex: none; }
+  @media (max-width: 420px) {
+    header { gap: 12px; }
+    header img { width: 56px; height: 56px; border-radius: 13px; }
+    h1 { font-size: 24px; }
+  }
+  .lang button {
+    font: inherit; font-size: 15px; padding: 6px 12px; min-height: 36px;
+    border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer;
+  }
+  .lang button:first-child { border-radius: 8px 0 0 8px; }
+  .lang button:last-child { border-radius: 0 8px 8px 0; border-left: none; }
+  .lang button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 18px 20px; margin: 0 0 16px;
+  }
+  .card h2 { font-size: 19px; margin: 0 0 8px; }
+  .card p { margin: 0 0 8px; }
+  .card p:last-child { margin-bottom: 0; }
+  .status { background: var(--accent-soft); border-color: transparent; }
+  ol { margin: 0; padding-left: 22px; }
+  li { margin: 6px 0; }
+  .share {
+    display: inline-block; vertical-align: -3px; width: 18px; height: 18px;
+  }
+  footer { color: var(--muted); font-size: 14px; margin-top: 24px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="icons/apple-touch-icon.png" alt="">
+    <div>
+      <h1>PerioMeasure</h1>
+      <p class="sub" data-t="subtitle"></p>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="en">EN</button><button type="button" data-lang="tr">TR</button>
+    </div>
+  </header>
+
+  <section class="card status">
+    <h2 data-t="statusTitle"></h2>
+    <p data-t="statusBody"></p>
+    <p data-t="statusWindows"></p>
+  </section>
+
+  <section class="card" id="install">
+    <h2 data-t="installTitle"></h2>
+    <ol>
+      <li data-t="install1"></li>
+      <li><span data-t="install2"></span>
+        <svg class="share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11H5v10h14V11h-1"/>
+        </svg></li>
+      <li data-t="install3"></li>
+      <li data-t="install4"></li>
+    </ol>
+    <p style="margin-top:10px" data-t="installMac"></p>
+  </section>
+
+  <section class="card" id="installed" hidden>
+    <h2 data-t="installedTitle"></h2>
+    <p data-t="installedBody"></p>
+  </section>
+
+  <section class="card">
+    <h2 data-t="privacyTitle"></h2>
+    <p data-t="privacyBody"></p>
+  </section>
+
+  <footer>
+    <p data-t="disclaimer"></p>
+    <p>PerioMeasure 0.2.0</p>
+  </footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var T = {
+    en: {
+      subtitle: "Periocular measurements on facial photographs",
+      statusTitle: "Web version in preparation",
+      statusBody: "Measuring on iPhone, iPad and Mac is being built. It will appear here automatically: once you have added PerioMeasure to your home screen you do not need to install it again.",
+      statusWindows: "Until then, measurements are made with the PerioMeasure program on Windows.",
+      installTitle: "Add to your home screen (iPhone / iPad)",
+      install1: "Open this page in Safari.",
+      install2: "Tap the Share button",
+      install3: "Choose “Add to Home Screen”.",
+      install4: "Tap “Add”. The PerioMeasure icon appears on your home screen and opens full-screen like an app.",
+      installMac: "On a Mac: in Safari choose File › Add to Dock.",
+      installedTitle: "PerioMeasure is on your home screen",
+      installedBody: "New versions are loaded automatically when you open it.",
+      privacyTitle: "Your photos stay on your device",
+      privacyBody: "PerioMeasure will process photos only inside this device. Photos and results are never uploaded or sent anywhere.",
+      disclaimer: "Research use only; not a medical device."
+    },
+    tr: {
+      subtitle: "Yüz fotoğraflarında perioküler ölçüm",
+      statusTitle: "Web sürümü hazırlanıyor",
+      statusBody: "iPhone, iPad ve Mac'te ölçüm yapma özelliği geliştiriliyor. Hazır olduğunda burada kendiliğinden açılacak: PerioMeasure'ı ana ekranınıza bir kez eklemeniz yeterli, yeniden kurmanız gerekmez.",
+      statusWindows: "O zamana kadar ölçümler Windows'taki PerioMeasure programıyla yapılır.",
+      installTitle: "Ana ekrana ekleme (iPhone / iPad)",
+      install1: "Bu sayfayı Safari'de açın.",
+      install2: "Paylaş düğmesine dokunun",
+      install3: "“Ana Ekrana Ekle” seçeneğini seçin.",
+      install4: "“Ekle”'ye dokunun. PerioMeasure simgesi ana ekranınızda belirir ve uygulama gibi tam ekran açılır.",
+      installMac: "Mac'te: Safari'de Dosya › Dock'a Ekle.",
+      installedTitle: "PerioMeasure ana ekranınızda",
+      installedBody: "Yeni sürümler, uygulamayı açtığınızda kendiliğinden yüklenir.",
+      privacyTitle: "Fotoğraflarınız cihazınızda kalır",
+      privacyBody: "PerioMeasure fotoğrafları yalnızca bu cihazın içinde işleyecek. Fotoğraflar ve sonuçlar hiçbir yere yüklenmez ve gönderilmez.",
+      disclaimer: "Yalnızca araştırma amaçlıdır; tıbbi cihaz değildir."
+    }
+  };
+
+  function stored() {
+    try { return localStorage.getItem("periomeasure.uiLanguage"); } catch (e) { return null; }
+  }
+  function store(l) {
+    try { localStorage.setItem("periomeasure.uiLanguage", l); } catch (e) { /* private mode: not remembered */ }
+  }
+  function apply(l) {
+    var t = T[l] || T.en;
+    document.documentElement.lang = l;
+    var els = document.querySelectorAll("[data-t]");
+    for (var i = 0; i < els.length; i++) {
+      els[i].textContent = t[els[i].getAttribute("data-t")];
+    }
+    var btns = document.querySelectorAll("[data-lang]");
+    for (var j = 0; j < btns.length; j++) {
+      btns[j].setAttribute("aria-pressed", String(btns[j].getAttribute("data-lang") === l));
+    }
+  }
+
+  var lang = stored() === "tr" ? "tr" : "en"; // English is the default
+  apply(lang);
+  var buttons = document.querySelectorAll("[data-lang]");
+  for (var k = 0; k < buttons.length; k++) {
+    buttons[k].addEventListener("click", function () {
+      lang = this.getAttribute("data-lang");
+      store(lang);
+      apply(lang);
+    });
+  }
+
+  var standalone = window.navigator.standalone === true
+      || (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+  document.getElementById("install").hidden = standalone;
+  document.getElementById("installed").hidden = !standalone;
+})();
+</script>
+</body>
+</html>

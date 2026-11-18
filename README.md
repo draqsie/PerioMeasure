@@ -59,6 +59,14 @@ fails, no jar is produced.
 - Or in Fiji: **Plugins › PerioMeasure › Measure...** (an image open in Fiji
   is loaded automatically) or **Demo...**.
 
+### iPhone, iPad and Mac (web version — in preparation)
+The web page in `docs/` is published with GitHub Pages
+(`https://<github-user>.github.io/PerioMeasure/`). In Safari: **Share ›
+Add to Home Screen** (Mac: **File › Add to Dock**) and PerioMeasure opens
+full-screen like an app. Measuring in the browser is still being built; it
+will appear at the same address without reinstalling. Photos will be
+processed only on the device.
+
 Everything happens in **one window**: a header bar on top (Open photo, Paste,
 Demo face, view controls, **language EN/TR**, **light/dark theme**, Settings,
 **Guide**, About), the photo large in the middle, guidance / form / results
