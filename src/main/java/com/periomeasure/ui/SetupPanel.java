@@ -59,9 +59,10 @@ final class SetupPanel extends JPanel {
         this.window = w;
         this.lang = w.model().settings().language;
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-        setBorder(BorderFactory.createEmptyBorder(14, 16, 14, 16));
+        int pad = com.formdev.flatlaf.util.UIScale.scale(18);
+        setBorder(BorderFactory.createEmptyBorder(pad, pad, pad, pad));
 
-        add(Ui.title(m(Msg.SETUP_TITLE), 18f));
+        add(Ui.title(m(Msg.SETUP_TITLE), 7));
         add(Ui.text(Messages.get(lang, Msg.SETUP_PHOTO, photoName, w.model().width(), w.model().height())));
         if (!w.model().imageWarnings().isEmpty()) {
             StringBuilder sb = new StringBuilder(m(Msg.PANEL_IMAGE_WARNINGS));
@@ -69,7 +70,7 @@ final class SetupPanel extends JPanel {
                 sb.append("\n• ").append(UiTexts.warning(lang, wn));
             }
             JTextArea t = Ui.text(sb.toString());
-            t.setForeground(Ui.WARNING);
+            t.setForeground(Themes.warning());
             add(t);
         }
         add(Box.createVerticalStrut(10));
@@ -77,7 +78,8 @@ final class SetupPanel extends JPanel {
         add(label(Msg.SETUP_PATIENT));
         add(field(patient));
         JLabel privacy = new JLabel(m(Msg.SETUP_PRIVACY));
-        privacy.setFont(privacy.getFont().deriveFont(Font.ITALIC, 11f));
+        privacy.setFont(privacy.getFont().deriveFont(Font.ITALIC, Themes.font(-2)));
+        privacy.setForeground(Themes.muted());
         privacy.setAlignmentX(Component.LEFT_ALIGNMENT);
         add(privacy);
         add(Box.createVerticalStrut(8));
@@ -116,13 +118,14 @@ final class SetupPanel extends JPanel {
         add(Ui.text(Messages.get(lang, Msg.SETUP_STICKER,
                 Formats.number(w.model().settings().referenceDiameterMm, 1, lang))));
         add(Box.createVerticalStrut(10));
-        error.setForeground(new Color(180, 0, 0));
+        error.setForeground(Themes.error());
         error.setAlignmentX(Component.LEFT_ALIGNMENT);
         add(error);
-        start = Ui.button(m(Msg.SETUP_START), e -> submit());
-        start.setFont(start.getFont().deriveFont(Font.BOLD, 15f));
+        start = Ui.primary(m(Msg.SETUP_START).replace("▶", "").trim(), Icons.Kind.NEXT, e -> submit());
+        start.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
+        start.setFont(start.getFont().deriveFont(Font.BOLD, Themes.font(2)));
         start.setAlignmentX(Component.LEFT_ALIGNMENT);
-        start.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        start.setMaximumSize(new Dimension(Integer.MAX_VALUE, com.formdev.flatlaf.util.UIScale.scale(46)));
         add(start);
         add(Box.createVerticalGlue());
     }

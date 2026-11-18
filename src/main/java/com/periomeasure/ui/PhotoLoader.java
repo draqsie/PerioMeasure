@@ -93,6 +93,19 @@ final class PhotoLoader {
         return new Loaded(null, rgb, ImageChecks.check(rgb.getWidth(), rgb.getHeight(), null, false, env), null);
     }
 
+    /**
+     * Wraps pixels pasted from the clipboard. They may be a reduced copy of the
+     * photo and carry no file name, EXIF orientation or date, so the
+     * {@link WarningCode#PASTED_IMAGE} warning is always added first.
+     */
+    static Loaded fromPasted(BufferedImage img, Map<String, String> env) {
+        Loaded l = fromImage(img, env);
+        List<Warning> warnings = new ArrayList<>();
+        warnings.add(new Warning(WarningCode.PASTED_IMAGE, null, Double.NaN));
+        warnings.addAll(l.warnings);
+        return new Loaded(null, l.image, warnings, null);
+    }
+
     static BufferedImage toRgb(BufferedImage src) {
         if (src.getType() == BufferedImage.TYPE_INT_RGB) {
             return src;

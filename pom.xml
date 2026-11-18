@@ -74,6 +74,15 @@
       <scope>provided</scope>
     </dependency>
 
+    <!-- Modern look and feel with light/dark themes. Shipped with Fiji
+         (Fiji.app/jars/flatlaf-3.5.1.jar); never bundled into our jar. -->
+    <dependency>
+      <groupId>com.formdev</groupId>
+      <artifactId>flatlaf</artifactId>
+      <version>3.5.1</version>
+      <scope>provided</scope>
+    </dependency>
+
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>

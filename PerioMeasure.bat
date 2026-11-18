@@ -1,8 +1,8 @@
 @echo off
 rem ===================================================================
 rem  PerioMeasure - cift tiklayin.
-rem  Fiji'nin kendi Java'si ve ImageJ'si ile tek PerioMeasure penceresini
-rem  acar. Fotograf acabilir veya "Deneme yuzu" ile deneyebilirsiniz.
+rem  Fiji'nin kendi Java'si, ImageJ'si ve FlatLaf arayuz kutuphanesi ile
+rem  tek PerioMeasure penceresini acar (Fiji'nin kendisi acilmaz).
 rem ===================================================================
 setlocal
 set "FIJI=%USERPROFILE%\Fiji.app"
@@ -17,6 +17,8 @@ for /d %%D in ("%FIJI%\java\win64\*") do if exist "%%D\jre\bin\javaw.exe" set "J
 if not defined JAVA for /d %%D in ("%FIJI%\java\win64\*") do if exist "%%D\bin\javaw.exe" set "JAVA=%%D\bin\javaw.exe"
 set "IJJAR="
 for %%J in ("%FIJI%\jars\ij-*.jar") do set "IJJAR=%%J"
+set "FLATLAF="
+for %%J in ("%FIJI%\jars\flatlaf-*.jar") do set "FLATLAF=%%J"
 if not defined JAVA (
   echo Fiji'nin Java'si bulunamadi: "%FIJI%\java\win64"
   pause
@@ -27,4 +29,9 @@ if not defined IJJAR (
   pause
   exit /b 1
 )
-start "PerioMeasure" "%JAVA%" -Xmx3g -cp "%IJJAR%;%FIJI%\plugins\PerioMeasure_.jar" com.periomeasure.ui.PerioMeasureApp
+if not defined FLATLAF (
+  echo FlatLaf bulunamadi: "%FIJI%\jars\flatlaf-*.jar"
+  pause
+  exit /b 1
+)
+start "PerioMeasure" "%JAVA%" -Xmx3g -cp "%IJJAR%;%FLATLAF%;%FIJI%\plugins\PerioMeasure_.jar" com.periomeasure.ui.PerioMeasureApp

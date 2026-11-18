@@ -1,10 +1,14 @@
 package com.periomeasure.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.EventQueue;
+import java.awt.FileDialog;
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -12,18 +16,16 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JComponent;
-import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
@@ -32,14 +34,14 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
-import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingWorker;
 import javax.swing.TransferHandler;
+import javax.swing.UIManager;
 import javax.swing.WindowConstants;
-import javax.swing.filechooser.FileNameExtensionFilter;
 
+import com.formdev.flatlaf.util.UIScale;
 import com.periomeasure.Version;
 import com.periomeasure.core.EyeSelection;
 import com.periomeasure.core.Timing;
@@ -49,6 +51,7 @@ import com.periomeasure.i18n.Messages;
 import com.periomeasure.i18n.Msg;
 import com.periomeasure.io.Formats;
 import com.periomeasure.io.Settings;
+import com.periomeasure.io.Theme;
 import com.periomeasure.session.AxisMode;
 import com.periomeasure.session.OptionalLandmark;
 import com.periomeasure.session.SessionSetup;
@@ -60,16 +63,16 @@ import com.periomeasure.synthetic.SyntheticScene;
 import ij.Prefs;
 
 /**
- * The single PerioMeasure window: toolbar on top, the large photo in the
- * middle, the guidance / form / results panel on the right, a status line
- * at the bottom. Photos can be opened with the file chooser (starting in the
- * Pictures folder) or dropped onto the window. All state lives in
+ * The single PerioMeasure window: header bar on top, the large photo in the
+ * middle, the guidance / form / results panel on the right, a status line at
+ * the bottom, and a guided tour on first start. All state lives in
  * {@link AppModel}; this class only wires Swing to it.
  */
 final class MainWindow extends JFrame {
 
     private static final long serialVersionUID = 1L;
-    private static final String PREF_LAST_DIR = "periomeasure.lastDir";
+    static final String PREF_LAST_DIR = "periomeasure.lastDir";
+    static final String PREF_TOUR_DONE = "periomeasure.tourDone";
     static final String[] DEMO_SCENES = {"01_typical_frontal", "02_typical_roll7_oblique", "03_right_ptosis",
         "04_asymmetric_mirrored"};
     private static final Msg[] DEMO_LABELS = {Msg.DEMO_SCENE_1, Msg.DEMO_SCENE_2, Msg.DEMO_SCENE_3, Msg.DEMO_SCENE_4};
@@ -81,12 +84,14 @@ final class MainWindow extends JFrame {
     private final LoupeView loupe;
     private final JPanel side = new JPanel(new BorderLayout());
     private final JLabel status = new JLabel(" ");
+    private HeaderBar header;
     private JScrollPane sideScroll;
     private JComponent card;
     private transient AppModel.Phase shownPhase;
     private SetupPanel setupPanel;
     private StepsPanel stepsPanel;
-    private transient java.time.LocalDate pendingDate;
+    private TourOverlay tour;
+    private transient LocalDate pendingDate;
     private String photoName = "";
 
     MainWindow(AppModel model, boolean standalone, Map<String, String> env) {
@@ -95,6 +100,7 @@ final class MainWindow extends JFrame {
         this.standalone = standalone;
         this.viewer = new ImageViewer(this);
         this.loupe = new LoupeView(this);
+        setIconImages(AppIcon.images()); // title bar, taskbar, Alt+Tab
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             @Override
@@ -113,7 +119,8 @@ final class MainWindow extends JFrame {
         bindKeys();
         buildChrome();
         Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
-        setSize(Math.min(1500, screen.width - 40), Math.min(950, screen.height - 60));
+        setMinimumSize(new Dimension(UIScale.scale(1100), UIScale.scale(700)));
+        setSize(Math.min(UIScale.scale(1600), screen.width - 40), Math.min(UIScale.scale(1000), screen.height - 60));
         setLocationRelativeTo(null);
         setExtendedState(getExtendedState() | MAXIMIZED_BOTH);
         refresh();
@@ -133,12 +140,20 @@ final class MainWindow extends JFrame {
         return loupe;
     }
 
+    HeaderBar header() {
+        return header;
+    }
+
     SetupPanel setupPanel() {
         return setupPanel;
     }
 
     StepsPanel stepsPanel() {
         return stepsPanel;
+    }
+
+    TourOverlay tour() {
+        return tour;
     }
 
     private Language lang() {
@@ -153,37 +168,36 @@ final class MainWindow extends JFrame {
 
     private void buildChrome() {
         getContentPane().removeAll();
-        setTitle(m(Msg.APP_TITLE) + " " + Version.get());
-        JToolBar tb = new JToolBar();
-        tb.setFloatable(false);
-        tb.add(Ui.button(m(Msg.TB_OPEN), e -> openPhoto()));
-        JButton demo = Ui.button(m(Msg.TB_DEMO), null);
-        demo.addActionListener(e -> demoMenu().show(demo, 0, demo.getHeight()));
-        tb.add(demo);
-        tb.addSeparator();
-        tb.add(Ui.button(m(Msg.TB_FIT), e -> viewer.fit()));
-        tb.add(Ui.button(m(Msg.TB_ZOOM_IN), e -> viewer.zoom(1.5)));
-        tb.add(Ui.button(m(Msg.TB_ZOOM_OUT), e -> viewer.zoom(1 / 1.5)));
-        tb.addSeparator();
-        tb.add(Ui.button(m(Msg.TB_SETTINGS), e -> openSettings()));
-        tb.add(Ui.button(m(Msg.TB_ABOUT), e -> JOptionPane.showMessageDialog(this,
-                Messages.get(lang(), Msg.ABOUT_BODY, Version.get()), m(Msg.ABOUT_TITLE),
-                JOptionPane.INFORMATION_MESSAGE)));
+        setTitle("PerioMeasure " + Version.get());
+        header = new HeaderBar(this);
 
         sideScroll = new JScrollPane(side, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        sideScroll.setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, java.awt.Color.LIGHT_GRAY));
-        sideScroll.getVerticalScrollBar().setUnitIncrement(16);
-        sideScroll.setPreferredSize(new Dimension(420, 600));
+        sideScroll.setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, UIManager.getColor("Separator.foreground")));
+        sideScroll.getVerticalScrollBar().setUnitIncrement(UIScale.scale(18));
+        sideScroll.setPreferredSize(new Dimension(UIScale.scale(470), UIScale.scale(600)));
 
-        status.setBorder(BorderFactory.createEmptyBorder(3, 8, 3, 8));
+        status.setFont(status.getFont().deriveFont(Themes.font(-2)));
+        status.setForeground(Themes.muted());
+        JPanel statusBar = new JPanel(new BorderLayout());
+        statusBar.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, UIManager.getColor("Separator.foreground")),
+                BorderFactory.createEmptyBorder(UIScale.scale(4), UIScale.scale(14), UIScale.scale(4),
+                        UIScale.scale(14))));
+        statusBar.add(status, BorderLayout.WEST);
+        JLabel disclaimer = new JLabel(m(Msg.RES_DISCLAIMER));
+        disclaimer.setFont(status.getFont());
+        disclaimer.setForeground(Themes.muted());
+        statusBar.add(disclaimer, BorderLayout.EAST);
+
         getContentPane().setLayout(new BorderLayout());
-        getContentPane().add(tb, BorderLayout.NORTH);
+        getContentPane().add(header, BorderLayout.NORTH);
         getContentPane().add(viewer, BorderLayout.CENTER);
         getContentPane().add(sideScroll, BorderLayout.EAST);
-        getContentPane().add(status, BorderLayout.SOUTH);
+        getContentPane().add(statusBar, BorderLayout.SOUTH);
         shownPhase = null;
         stepsPanel = null;
+        card = null;
         revalidate();
     }
 
@@ -194,11 +208,15 @@ final class MainWindow extends JFrame {
             refresh();
         });
         bind(root, "control O", "open", this::openPhoto);
+        // Text fields keep their own Ctrl+V (focused-component bindings are tried first).
+        bind(root, "control V", "paste", this::paste);
+        bind(root, "shift INSERT", "paste2", this::paste);
         bind(root, "control EQUALS", "zoomIn", () -> viewer.zoom(1.5));
         bind(root, "control ADD", "zoomIn2", () -> viewer.zoom(1.5));
         bind(root, "control MINUS", "zoomOut", () -> viewer.zoom(1 / 1.5));
         bind(root, "control SUBTRACT", "zoomOut2", () -> viewer.zoom(1 / 1.5));
         bind(root, "control 0", "fit", viewer::fit);
+        bind(root, "F1", "guide", this::startTour);
     }
 
     private static void bind(JComponent c, String key, String name, Runnable r) {
@@ -217,7 +235,7 @@ final class MainWindow extends JFrame {
         JPopupMenu menu = new JPopupMenu();
         for (int i = 0; i < DEMO_LABELS.length; i++) {
             final int k = i;
-            JMenuItem item = new JMenuItem(m(DEMO_LABELS[i]));
+            JMenuItem item = new JMenuItem(m(DEMO_LABELS[i]), Icons.of(Icons.Kind.DEMO));
             item.addActionListener(e -> loadDemo(k));
             menu.add(item);
         }
@@ -248,8 +266,11 @@ final class MainWindow extends JFrame {
             side.add(next, BorderLayout.NORTH);
             card = next;
             shownPhase = p;
-            sideScroll.setPreferredSize(new Dimension(p == AppModel.Phase.RESULTS ? 660 : 420, 600));
+            sideScroll.setPreferredSize(new Dimension(UIScale.scale(p == AppModel.Phase.RESULTS ? 720 : 470),
+                    UIScale.scale(600)));
             getContentPane().revalidate();
+            JScrollPane sp = sideScroll;
+            EventQueue.invokeLater(() -> sp.getVerticalScrollBar().setValue(0)); // after layout: start at the top
         } else if (p == AppModel.Phase.MEASURING && stepsPanel != null) {
             stepsPanel.update();
         }
@@ -304,6 +325,12 @@ final class MainWindow extends JFrame {
         JOptionPane.showMessageDialog(this, t, m(Msg.ERR_TITLE), JOptionPane.ERROR_MESSAGE);
     }
 
+    void showAbout() {
+        JTextArea t = Ui.text(Messages.get(lang(), Msg.ABOUT_BODY, Version.get()));
+        t.setColumns(36);
+        JOptionPane.showMessageDialog(this, t, m(Msg.ABOUT_TITLE), JOptionPane.INFORMATION_MESSAGE);
+    }
+
     /** @return true if nothing would be lost, or the user agreed to discard the marked points */
     boolean confirmDiscard() {
         if (model.phase() != AppModel.Phase.MEASURING || model.session() == null) {
@@ -314,6 +341,82 @@ final class MainWindow extends JFrame {
             anyPoint |= !model.session().points(i).isEmpty();
         }
         return !anyPoint || StepsPanel.confirm(this, lang(), m(Msg.CONFIRM_DISCARD));
+    }
+
+    // ------------------------------------------------------------------ language, theme, settings
+
+    void setLanguage(Language l) {
+        if (l == lang()) {
+            return;
+        }
+        applySettings(saved(model.settings().withLanguage(l)));
+    }
+
+    void toggleTheme() {
+        Theme t = Themes.dark() ? Theme.LIGHT : Theme.DARK;
+        Settings s = saved(model.settings().withTheme(t));
+        Themes.apply(t);
+        applySettings(s);
+    }
+
+    private static Settings saved(Settings s) {
+        s.save(new ImageJPrefsStore());
+        Prefs.savePreferences();
+        return s;
+    }
+
+    void openSettings() {
+        Settings s = SettingsDialog.show(this, model.settings());
+        if (s != null) {
+            applySettings(s);
+        }
+    }
+
+    /** Rebuilds the texts and colours (language / theme / settings changed); keeps all work. */
+    void applySettings(Settings s) {
+        model.setSettings(s);
+        boolean tourOpen = tour != null && tour.isVisible();
+        buildChrome();
+        refresh();
+        if (tourOpen) {
+            tour.close();
+            startTour();
+        }
+    }
+
+    // ------------------------------------------------------------------ guided tour
+
+    private List<TourOverlay.Stop> tourStops() {
+        List<TourOverlay.Stop> s = new ArrayList<>();
+        s.add(new TourOverlay.Stop(null, Msg.TOUR_1_TITLE, Msg.TOUR_1_BODY));
+        s.add(new TourOverlay.Stop(() -> header.open, Msg.TOUR_2_TITLE, Msg.TOUR_2_BODY));
+        s.add(new TourOverlay.Stop(() -> header.demo, Msg.TOUR_3_TITLE, Msg.TOUR_3_BODY));
+        s.add(new TourOverlay.Stop(() -> viewer, Msg.TOUR_4_TITLE, Msg.TOUR_4_BODY));
+        s.add(new TourOverlay.Stop(() -> sideScroll, Msg.TOUR_5_TITLE, Msg.TOUR_5_BODY));
+        s.add(new TourOverlay.Stop(() -> header.viewGroup, Msg.TOUR_6_TITLE, Msg.TOUR_6_BODY));
+        s.add(new TourOverlay.Stop(() -> header.language, Msg.TOUR_7_TITLE, Msg.TOUR_7_BODY));
+        s.add(new TourOverlay.Stop(() -> header.theme, Msg.TOUR_8_TITLE, Msg.TOUR_8_BODY));
+        s.add(new TourOverlay.Stop(() -> header.settings, Msg.TOUR_9_TITLE, Msg.TOUR_9_BODY));
+        s.add(new TourOverlay.Stop(() -> header.help, Msg.TOUR_10_TITLE, Msg.TOUR_10_BODY));
+        return s;
+    }
+
+    /** Opens the step-by-step guide (also with F1 or the "Guide" button). */
+    void startTour() {
+        tour = new TourOverlay(tourStops(), lang(), () -> {
+            Prefs.set(PREF_TOUR_DONE, "true");
+            Prefs.savePreferences();
+        });
+        setGlassPane(tour);
+        tour.start();
+        tour.requestFocusInWindow();
+    }
+
+    /** Shows the guide automatically the very first time PerioMeasure opens. */
+    void startTourIfFirstTime() {
+        if (!"true".equals(Prefs.get(PREF_TOUR_DONE, "false"))) {
+            EventQueue.invokeLater(this::startTour);
+        }
     }
 
     // ------------------------------------------------------------------ opening images
@@ -327,16 +430,18 @@ final class MainWindow extends JFrame {
         return pictures.isDirectory() ? pictures : new File(System.getProperty("user.home"));
     }
 
+    /** Windows' own "Open" dialog (familiar, never clipped, with picture previews). */
     void openPhoto() {
         if (!confirmDiscard()) {
             return;
         }
-        JFileChooser ch = new JFileChooser(startDir());
-        ch.setDialogTitle(m(Msg.CHOOSER_TITLE));
-        ch.setFileFilter(new FileNameExtensionFilter(m(Msg.CHOOSER_FILTER), "jpg", "jpeg", "png", "tif", "tiff",
-                "bmp", "gif", "heic", "heif"));
-        if (ch.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-            loadFile(ch.getSelectedFile(), false);
+        FileDialog fd = new FileDialog(this, m(Msg.CHOOSER_TITLE), FileDialog.LOAD);
+        fd.setDirectory(startDir().getAbsolutePath());
+        fd.setFile("*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.bmp;*.gif;*.heic;*.heif");
+        fd.setFilenameFilter((dir, name) -> ClipboardPhoto.isPhotoName(name));
+        fd.setVisible(true);
+        if (fd.getFile() != null) {
+            loadFile(new File(fd.getDirectory(), fd.getFile()), true);
         }
     }
 
@@ -388,6 +493,46 @@ final class MainWindow extends JFrame {
         install(new ImagePyramid(l.image), null, name, l.warnings, null, null, null, null);
     }
 
+    /** "Paste" button / Ctrl+V: opens the photo on the system clipboard. */
+    void paste() {
+        Transferable t;
+        try {
+            t = Toolkit.getDefaultToolkit().getSystemClipboard().getContents(null);
+        } catch (RuntimeException e) {
+            t = null; // clipboard busy or unavailable
+        }
+        paste(t);
+    }
+
+    /**
+     * Opens what {@code t} offers: a copied photo file is opened as the original
+     * file; copied pixels are used exactly but flagged with the pasted-image
+     * warning; several photos or nothing usable only explain what to do.
+     */
+    void paste(Transferable t) {
+        open(ClipboardPhoto.read(t));
+    }
+
+    private void open(ClipboardPhoto.Content c) {
+        if (c == null) {
+            showError(m(Msg.ERR_PASTE_NOTHING));
+        } else if (c.severalPhotos) {
+            showError(m(Msg.ERR_PASTE_SEVERAL));
+        } else if (c.file != null) {
+            loadFile(c.file, false);
+        } else {
+            loadPasted(c.image);
+        }
+    }
+
+    private void loadPasted(BufferedImage img) {
+        if (!confirmDiscard()) {
+            return;
+        }
+        PhotoLoader.Loaded l = PhotoLoader.fromPasted(img, env);
+        install(new ImagePyramid(l.image), null, m(Msg.PASTED_NAME), l.warnings, null, null, null, null);
+    }
+
     /** Opens demo face {@code index} and starts measuring at once. */
     void loadDemo(int index) {
         if (!confirmDiscard()) {
@@ -415,46 +560,32 @@ final class MainWindow extends JFrame {
         refresh();
     }
 
-    private void openSettings() {
-        Settings s = SettingsDialog.show(model.settings());
-        if (s != null) {
-            applySettings(s);
-        }
-    }
-
-    void applySettings(Settings s) {
-        model.setSettings(s);
-        buildChrome();
-        refresh();
-    }
-
-    /** Accepts photo files dropped onto the window. */
+    /** Accepts a photo file (or image) dropped onto the window; same rules as pasting. */
     private final class FileDrop extends TransferHandler {
         private static final long serialVersionUID = 1L;
 
         @Override
         public boolean canImport(TransferSupport support) {
-            return support.isDataFlavorSupported(DataFlavor.javaFileListFlavor);
+            return support.isDataFlavorSupported(DataFlavor.javaFileListFlavor)
+                    || support.isDataFlavorSupported(DataFlavor.imageFlavor);
         }
 
         @Override
         public boolean importData(TransferSupport support) {
-            try {
-                @SuppressWarnings("unchecked")
-                List<File> files = (List<File>) support.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
-                if (files.isEmpty()) {
-                    return false;
-                }
-                File f = files.get(0);
-                String n = f.getName().toLowerCase(Locale.ROOT);
-                if (f.isDirectory() || n.endsWith(".csv") || n.endsWith(".txt")) {
-                    return false;
-                }
-                loadFile(f, false);
-                return true;
-            } catch (Exception e) {
+            // Dropped data is only readable during the drop: read it now, open it afterwards
+            // so the source program is not kept waiting by any dialog.
+            ClipboardPhoto.Content c = ClipboardPhoto.read(support.getTransferable());
+            if (c == null) {
                 return false;
             }
+            EventQueue.invokeLater(() -> open(c));
+            return true;
         }
+    }
+
+    /** Lets tests and the self-test reach a component by tour index. */
+    Component tourTarget(int i) {
+        TourOverlay.Stop s = tourStops().get(i);
+        return s.target == null ? null : s.target.get();
     }
 }

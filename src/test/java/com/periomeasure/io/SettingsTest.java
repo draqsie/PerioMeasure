@@ -30,7 +30,7 @@ class SettingsTest {
     @Test
     void defaults() {
         Settings s = Settings.load(new MapStore());
-        assertEquals(Language.TR, s.language);
+        assertEquals(Language.EN, s.language);
         assertEquals(24.0, s.referenceDiameterMm, 0);
         assertEquals('.', s.decimalSeparator);
         assertEquals("", s.outputDir);
@@ -52,6 +52,28 @@ class SettingsTest {
     }
 
     @Test
+    void themeDefaultsToLightAndIsRemembered() {
+        assertEquals(Theme.LIGHT, Settings.defaults().theme);
+        MapStore store = new MapStore();
+        Settings.defaults().withTheme(Theme.DARK).save(store);
+        assertEquals("dark", store.map.get(Settings.KEY_THEME));
+        assertEquals(Theme.DARK, Settings.load(store).theme);
+        store.set(Settings.KEY_THEME, "purple");
+        assertEquals(Theme.LIGHT, Settings.load(store).theme);
+    }
+
+    @Test
+    void languageUsesANewKeySoTheOldTurkishDefaultIsNotCarriedOver() {
+        MapStore store = new MapStore();
+        store.set("periomeasure.language", "tr"); // written by versions where Turkish was the default
+        assertEquals(Language.EN, Settings.load(store).language);
+        assertEquals("periomeasure.uiLanguage", Settings.KEY_LANGUAGE);
+        Settings.defaults().withLanguage(Language.TR).save(store);
+        assertEquals("tr", store.map.get(Settings.KEY_LANGUAGE));
+        assertEquals(Language.TR, Settings.load(store).language);
+    }
+
+    @Test
     void diameterIsStoredLocaleIndependently() {
         MapStore store = new MapStore();
         Settings.defaults().withReferenceDiameterMm(20.5).save(store);
@@ -66,7 +88,7 @@ class SettingsTest {
         store.set(Settings.KEY_DECIMAL, "x");
         store.set(Settings.KEY_ZOOM, "12");
         Settings s = Settings.load(store);
-        assertEquals(Language.TR, s.language);
+        assertEquals(Language.EN, s.language);
         assertEquals(24.0, s.referenceDiameterMm, 0);
         assertEquals('.', s.decimalSeparator);
         assertEquals(6, s.zoomFactor);

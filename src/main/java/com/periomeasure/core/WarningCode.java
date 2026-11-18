@@ -30,5 +30,10 @@ public enum WarningCode {
     /** The output folder is cloud-synchronised. detail = provider name. */
     CLOUD_FOLDER_OUTPUT,
     /** The photo was shown rotated/mirrored as its EXIF orientation requests. value = EXIF orientation (2-8). */
-    EXIF_ORIENTATION_APPLIED
+    EXIF_ORIENTATION_APPLIED,
+    /**
+     * The photo was pasted as pixels from the clipboard: it may be a reduced copy and has
+     * no file name, EXIF orientation or capture date. value = NaN.
+     */
+    PASTED_IMAGE
 }

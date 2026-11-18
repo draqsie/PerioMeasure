@@ -1,11 +1,11 @@
 package com.periomeasure.i18n;
 
-/** User-interface language. Turkish is the default. */
+/** User-interface language. English is the default; Turkish is selectable in the header bar. */
 public enum Language {
     TR("tr"),
     EN("en");
 
-    public static final Language DEFAULT = TR;
+    public static final Language DEFAULT = EN;
 
     private final String code;
 

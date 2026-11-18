@@ -2,6 +2,9 @@ package com.periomeasure.ui;
 
 import java.awt.Component;
 import java.awt.EventQueue;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
@@ -13,8 +16,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Callable;
 
+import javax.imageio.ImageIO;
+
 import com.periomeasure.core.EyeLandmarks;
 import com.periomeasure.core.Vec2;
+import com.periomeasure.core.WarningCode;
 import com.periomeasure.i18n.Language;
 import com.periomeasure.io.MeasurementRecord;
 import com.periomeasure.session.Handle;
@@ -22,6 +28,7 @@ import com.periomeasure.session.Landmark;
 import com.periomeasure.session.Step;
 import com.periomeasure.synthetic.GroundTruth;
 import com.periomeasure.synthetic.SyntheticImageTool;
+import com.periomeasure.synthetic.SyntheticRenderer;
 import com.periomeasure.synthetic.SyntheticScene;
 
 /**
@@ -100,7 +107,39 @@ final class SelfTest {
     private static File shotDir;
 
     private static boolean check(StringBuilder report) throws Exception {
-        MainWindow w = PerioMeasureApp.openFromAnyThread(false);
+        String tourDoneBefore = ij.Prefs.get(MainWindow.PREF_TOUR_DONE, "false");
+        MainWindow w = PerioMeasureApp.openFromAnyThread(false, false);
+        Thread.sleep(800);
+        snapshot(w, shotDir, "selftest_welcome.png");
+        // The guided tour: every stop must highlight a visible control (except the centred first one).
+        edt(() -> {
+            w.startTour();
+            return null;
+        });
+        int stops = edt(() -> w.tour().stopCount());
+        for (int i = 0; i < stops; i++) {
+            final int k = i;
+            edt(() -> {
+                w.tour().go(k);
+                return null;
+            });
+            boolean hasHole = edt(() -> w.tour().hole() != null);
+            if (k > 0 && !hasHole) {
+                report.append("guide stop ").append(k + 1).append(" has no visible target\n");
+                return false;
+            }
+            if (k == 1 || k == 4 || k == 6) {
+                Thread.sleep(150);
+                snapshot(w, shotDir, "selftest_guide_" + (k + 1) + ".png");
+            }
+        }
+        edt(() -> {
+            w.tour().close();
+            return null;
+        });
+        ij.Prefs.set(MainWindow.PREF_TOUR_DONE, tourDoneBefore); // the self-test must not hide the real first-run guide
+        ij.Prefs.savePreferences();
+        report.append("guided tour: ").append(stops).append(" stops OK\n");
         edt(() -> {
             w.loadDemo(SCENE);
             return null;
@@ -137,8 +176,8 @@ final class SelfTest {
                     return false;
                 }
                 // 2) one click in the loupe to refine to sub-pixel precision
-                int[] ls = edt(() -> ViewState.centeredOn(placed, zoom, LoupeView.SIZE, LoupeView.SIZE)
-                        .toScreenPixel(t));
+                int ls0 = w.loupe().edge();
+                int[] ls = edt(() -> ViewState.centeredOn(placed, zoom, ls0, ls0).toScreenPixel(t));
                 click(w.loupe(), ls[0], ls[1]);
                 Vec2 refined = edt(() -> model.session().points(sel.stepIndex).get(sel.pointIndex));
                 if (refined.distanceTo(t) > loupeTolerance) {
@@ -150,8 +189,7 @@ final class SelfTest {
                     report.append(st).append(": selected marker not painted on its pixel in the photo view\n");
                     return false;
                 }
-                if (!markerOk(w, w.loupe(), ViewState.centeredOn(refined, zoom, LoupeView.SIZE, LoupeView.SIZE),
-                        refined)) {
+                if (!markerOk(w, w.loupe(), ViewState.centeredOn(refined, zoom, ls0, ls0), refined)) {
                     report.append(st).append(": selected marker not painted on its pixel in the loupe\n");
                     return false;
                 }
@@ -182,7 +220,41 @@ final class SelfTest {
         }
         Thread.sleep(300);
         snapshot(w, shotDir, "selftest_results.png");
-        MeasurementRecord r = edt(() -> model.lastOutcome().record);
+        // Dark theme (switched back afterwards so the user's choice is kept).
+        edt(() -> {
+            w.toggleTheme();
+            return null;
+        });
+        Thread.sleep(400);
+        snapshot(w, shotDir, "selftest_results_dark.png");
+        edt(() -> {
+            w.toggleTheme();
+            return null;
+        });
+        // Language switch from the header (switched back afterwards).
+        Language before = edt(() -> w.model().settings().language);
+        Language other = before == Language.TR ? Language.EN : Language.TR;
+        edt(() -> {
+            w.header().language.setSelectedIndex(other == Language.EN ? 0 : 1);
+            return null;
+        });
+        Thread.sleep(400);
+        if (edt(() -> w.model().settings().language) != other) {
+            report.append("language switch did not apply\n");
+            return false;
+        }
+        snapshot(w, shotDir, "selftest_results_" + other.code() + ".png");
+        edt(() -> {
+            w.header().language.setSelectedIndex(before == Language.EN ? 0 : 1);
+            return null;
+        });
+        report.append("theme and language switches OK\n");
+        MeasurementRecord measured = edt(() -> model.lastOutcome().record);
+        String savedFile = edt(() -> model.lastOutcome().files.sessionFile.getAbsolutePath());
+        if (!pasteOk(w, scene, report)) {
+            return false;
+        }
+        MeasurementRecord r = measured;
         GroundTruth truth = GroundTruth.of(scene.face);
         for (String[] row : ResultsSummary.verificationRows(r, truth, Language.EN)) {
             report.append(String.join(" | ", row)).append('\n');
@@ -190,7 +262,7 @@ final class SelfTest {
         report.append(ResultsSummary.verificationSummary(r, truth, Language.EN)).append('\n');
         report.append(String.format(Locale.ROOT, "clicks on the photo: %d (+1 loupe click each), buttons pressed: %d%n",
                 clicksOnPhoto, buttonPresses));
-        report.append("saved: ").append(edt(() -> model.lastOutcome().files.sessionFile.getAbsolutePath())).append('\n');
+        report.append("saved: ").append(savedFile).append('\n');
         boolean allWithin = true;
         for (String[] row : ResultsSummary.verificationRows(r, truth, Language.EN)) {
             allWithin &= "✓".equals(row[5]);
@@ -200,6 +272,101 @@ final class SelfTest {
             return null;
         });
         return allWithin && ResultsSummary.maxLengthError(r, truth) < 0.05;
+    }
+
+    /** Clipboard content made up by the test; the user's real clipboard is never touched. */
+    private static Transferable offering(DataFlavor flavor, Object value) {
+        return new Transferable() {
+            @Override
+            public DataFlavor[] getTransferDataFlavors() {
+                return new DataFlavor[] {flavor};
+            }
+
+            @Override
+            public boolean isDataFlavorSupported(DataFlavor f) {
+                return flavor.equals(f);
+            }
+
+            @Override
+            public Object getTransferData(DataFlavor f) throws UnsupportedFlavorException {
+                if (!flavor.equals(f)) {
+                    throw new UnsupportedFlavorException(f);
+                }
+                return value;
+            }
+        };
+    }
+
+    private static boolean samePixels(BufferedImage a, BufferedImage b) {
+        if (a.getWidth() != b.getWidth() || a.getHeight() != b.getHeight()) {
+            return false;
+        }
+        int w = a.getWidth();
+        for (int y = 0; y < a.getHeight(); y++) {
+            int[] ra = a.getRGB(0, y, w, 1, null, 0, w);
+            int[] rb = b.getRGB(0, y, w, 1, null, 0, w);
+            for (int x = 0; x < w; x++) {
+                if ((ra[x] & 0xFFFFFF) != (rb[x] & 0xFFFFFF)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Pastes copied pixels (must open exactly, flagged with the pasted-image
+     * warning) and a copied photo file (must open as the original file, without it).
+     */
+    private static boolean pasteOk(MainWindow w, SyntheticScene scene, StringBuilder report) throws Exception {
+        AppModel model = w.model();
+        BufferedImage src = SyntheticRenderer.render(scene);
+        edt(() -> {
+            w.paste(offering(DataFlavor.imageFlavor, src));
+            return null;
+        });
+        if (edt(model::phase) != AppModel.Phase.SETUP || edt(model::photo) != null
+                || edt(model::imageWarnings).isEmpty()
+                || edt(model::imageWarnings).get(0).code != WarningCode.PASTED_IMAGE) {
+            report.append("pasted pixels: not opened with the pasted-image warning\n");
+            return false;
+        }
+        if (!samePixels(src, edt(() -> w.viewer().pyramid().full()))) {
+            report.append("pasted pixels: changed on the way in\n");
+            return false;
+        }
+        Thread.sleep(300);
+        snapshot(w, shotDir, "selftest_pasted.png");
+
+        File file = File.createTempFile("selftest_paste_", ".png");
+        String lastDirBefore = ij.Prefs.get(MainWindow.PREF_LAST_DIR, "");
+        try {
+            ImageIO.write(src, "png", file);
+            edt(() -> {
+                w.paste(offering(DataFlavor.javaFileListFlavor, Collections.singletonList(file)));
+                return null;
+            });
+            for (int i = 0; i < 200 && !file.equals(edt(model::photo)); i++) {
+                Thread.sleep(50); // the file is loaded in the background
+            }
+            if (!file.equals(edt(model::photo))) {
+                report.append("pasted file: not opened as the original file\n");
+                return false;
+            }
+            boolean flagged = false;
+            for (com.periomeasure.core.Warning x : edt(model::imageWarnings)) {
+                flagged |= x.code == WarningCode.PASTED_IMAGE;
+            }
+            if (flagged || !samePixels(src, edt(() -> w.viewer().pyramid().full()))) {
+                report.append("pasted file: wrong warning or pixels\n");
+                return false;
+            }
+        } finally {
+            Files.deleteIfExists(file.toPath());
+            ij.Prefs.set(MainWindow.PREF_LAST_DIR, lastDirBefore); // keep the user's "last folder"
+        }
+        report.append("paste: copied pixels (exact, warned) and copied file (original) OK\n");
+        return true;
     }
 
     private static List<Vec2> targets(SyntheticScene scene, Step st) {

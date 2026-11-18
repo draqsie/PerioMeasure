@@ -12,11 +12,16 @@ import com.periomeasure.i18n.Language;
  */
 public final class Settings {
 
-    public static final String KEY_LANGUAGE = "periomeasure.language";
+    /**
+     * "uiLanguage", not the former "language": older versions stored Turkish (then the default)
+     * whenever any setting was saved, so the old key is deliberately ignored.
+     */
+    public static final String KEY_LANGUAGE = "periomeasure.uiLanguage";
     public static final String KEY_DIAMETER = "periomeasure.diameter";
     public static final String KEY_DECIMAL = "periomeasure.decimal";
     public static final String KEY_OUTPUT = "periomeasure.output";
     public static final String KEY_ZOOM = "periomeasure.zoom";
+    public static final String KEY_THEME = "periomeasure.theme";
 
     public static final double MIN_DIAMETER_MM = 1;
     public static final double MAX_DIAMETER_MM = 100;
@@ -31,11 +36,13 @@ public final class Settings {
     public final char decimalSeparator;
     /** Output folder; empty = an "output" folder next to the photograph. */
     public final String outputDir;
-    /** Magnification used for precise clicking (4-8). */
+    /** Loupe magnification (4-8). */
     public final int zoomFactor;
+    /** Light (default) or dark window theme. */
+    public final Theme theme;
 
     private Settings(Language language, double referenceDiameterMm, char decimalSeparator, String outputDir,
-            int zoomFactor) {
+            int zoomFactor, Theme theme) {
         this.language = Objects.requireNonNull(language, "language");
         if (!validDiameter(referenceDiameterMm)) {
             throw new IllegalArgumentException("Reference diameter must be between " + MIN_DIAMETER_MM + " and "
@@ -51,10 +58,11 @@ public final class Settings {
         this.decimalSeparator = decimalSeparator;
         this.outputDir = outputDir == null ? "" : outputDir.trim();
         this.zoomFactor = zoomFactor;
+        this.theme = Objects.requireNonNull(theme, "theme");
     }
 
     public static Settings defaults() {
-        return new Settings(Language.DEFAULT, 24.0, '.', "", DEFAULT_ZOOM);
+        return new Settings(Language.DEFAULT, 24.0, '.', "", DEFAULT_ZOOM, Theme.LIGHT);
     }
 
     public static Settings load(PrefsStore store) {
@@ -81,7 +89,8 @@ public final class Settings {
         } catch (NumberFormatException e) {
             // keep default
         }
-        return new Settings(lang, diameter, decimal, out, zoom);
+        Theme theme = Theme.fromCode(store.get(KEY_THEME, d.theme.code));
+        return new Settings(lang, diameter, decimal, out, zoom, theme);
     }
 
     public void save(PrefsStore store) {
@@ -90,26 +99,31 @@ public final class Settings {
         store.set(KEY_DECIMAL, String.valueOf(decimalSeparator));
         store.set(KEY_OUTPUT, outputDir);
         store.set(KEY_ZOOM, Integer.toString(zoomFactor));
+        store.set(KEY_THEME, theme.code);
     }
 
     public Settings withLanguage(Language l) {
-        return new Settings(l, referenceDiameterMm, decimalSeparator, outputDir, zoomFactor);
+        return new Settings(l, referenceDiameterMm, decimalSeparator, outputDir, zoomFactor, theme);
     }
 
     public Settings withReferenceDiameterMm(double d) {
-        return new Settings(language, d, decimalSeparator, outputDir, zoomFactor);
+        return new Settings(language, d, decimalSeparator, outputDir, zoomFactor, theme);
     }
 
     public Settings withDecimalSeparator(char c) {
-        return new Settings(language, referenceDiameterMm, c, outputDir, zoomFactor);
+        return new Settings(language, referenceDiameterMm, c, outputDir, zoomFactor, theme);
     }
 
     public Settings withOutputDir(String dir) {
-        return new Settings(language, referenceDiameterMm, decimalSeparator, dir, zoomFactor);
+        return new Settings(language, referenceDiameterMm, decimalSeparator, dir, zoomFactor, theme);
     }
 
     public Settings withZoomFactor(int z) {
-        return new Settings(language, referenceDiameterMm, decimalSeparator, outputDir, z);
+        return new Settings(language, referenceDiameterMm, decimalSeparator, outputDir, z, theme);
+    }
+
+    public Settings withTheme(Theme t) {
+        return new Settings(language, referenceDiameterMm, decimalSeparator, outputDir, zoomFactor, t);
     }
 
     /**

@@ -9,7 +9,7 @@ public class DemoPlugin implements PlugIn {
 
     @Override
     public void run(String arg) {
-        MainWindow w = PerioMeasureApp.openFromAnyThread(false);
+        MainWindow w = PerioMeasureApp.openFromAnyThread(false, false);
         if (w != null) {
             EventQueue.invokeLater(() -> w.loadDemo(0));
         }

@@ -18,7 +18,7 @@ public class MeasurePlugin implements PlugIn {
     @Override
     public void run(String arg) {
         ImagePlus imp = WindowManager.getCurrentImage();
-        MainWindow w = PerioMeasureApp.openFromAnyThread(false);
+        MainWindow w = PerioMeasureApp.openFromAnyThread(false, true);
         if (imp == null || w == null) {
             return;
         }

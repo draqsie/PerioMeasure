@@ -21,10 +21,10 @@ class MessagesTest {
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{(\\d+)}");
 
     @Test
-    void defaultLanguageIsTurkish() {
-        assertEquals(Language.TR, Language.DEFAULT);
-        assertEquals(Language.TR, Language.fromCode(null));
-        assertEquals(Language.TR, Language.fromCode("xx"));
+    void defaultLanguageIsEnglish() {
+        assertEquals(Language.EN, Language.DEFAULT);
+        assertEquals(Language.EN, Language.fromCode(null));
+        assertEquals(Language.EN, Language.fromCode("xx"));
         assertEquals(Language.EN, Language.fromCode(" EN "));
     }
 

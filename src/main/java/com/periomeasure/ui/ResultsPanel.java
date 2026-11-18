@@ -1,6 +1,5 @@
 package com.periomeasure.ui;
 
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Desktop;
 import java.awt.Dimension;
@@ -22,6 +21,7 @@ import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.table.DefaultTableModel;
 
+import com.formdev.flatlaf.util.UIScale;
 import com.periomeasure.i18n.Language;
 import com.periomeasure.i18n.Messages;
 import com.periomeasure.i18n.Msg;
@@ -37,33 +37,37 @@ final class ResultsPanel extends JPanel {
         Language l = w.model().settings().language;
         MeasurementRecord r = o.record;
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-        setBorder(BorderFactory.createEmptyBorder(12, 14, 12, 14));
+        int pad = UIScale.scale(18);
+        setBorder(BorderFactory.createEmptyBorder(pad, pad, pad, pad));
 
-        add(Ui.title(ResultsSummary.headerLine(r, l), 14f));
-        add(Box.createVerticalStrut(6));
+        add(Ui.title(ResultsSummary.headerLine(r, l), 3));
+        add(Box.createVerticalStrut(UIScale.scale(10)));
+        JPanel key = Ui.card(null);
+        key.setLayout(new BoxLayout(key, BoxLayout.Y_AXIS));
         for (String line : ResultsSummary.keyLines(r, l)) {
             JLabel k = new JLabel(line);
-            k.setFont(new Font(Font.MONOSPACED, Font.BOLD, 14));
+            k.setFont(new Font(Font.MONOSPACED, Font.BOLD, Math.round(Themes.font(1))));
             k.setAlignmentX(Component.LEFT_ALIGNMENT);
-            add(k);
+            key.add(k);
+            key.add(Box.createVerticalStrut(UIScale.scale(4)));
         }
-        add(Box.createVerticalStrut(8));
-        add(table(ResultsSummary.tableRows(r, l), ResultsSummary.columns(r, l), 200, 115, 115, 115));
+        add(key);
+        add(Box.createVerticalStrut(UIScale.scale(12)));
+        add(table(ResultsSummary.tableRows(r, l), ResultsSummary.columns(r, l), 210, 125, 125, 125));
 
         GroundTruth truth = w.model().truth();
         if (truth != null) {
-            add(Box.createVerticalStrut(10));
-            add(Ui.title(Messages.get(l, Msg.RES_VERIFY_TITLE), 13f));
+            add(Box.createVerticalStrut(UIScale.scale(14)));
+            add(Ui.title(Messages.get(l, Msg.RES_VERIFY_TITLE), 1));
             JTextArea s = Ui.text(ResultsSummary.verificationSummary(r, truth, l));
-            s.setForeground(new Color(0, 90, 160));
+            s.setForeground(Themes.accent());
             add(s);
-            add(table(ResultsSummary.verificationRows(r, truth, l), ResultsSummary.verificationColumns(l), 175, 45,
-                    120, 85, 80, 40));
+            add(table(ResultsSummary.verificationRows(r, truth, l), ResultsSummary.verificationColumns(l), 190, 55,
+                    130, 95, 90, 80));
         }
 
-        add(Box.createVerticalStrut(8));
-        add(Ui.text(ResultsSummary.calibrationLine(r, l)));
-        add(Ui.text(ResultsSummary.axisLine(r, l)));
+        add(Box.createVerticalStrut(UIScale.scale(12)));
+        add(Ui.small(ResultsSummary.calibrationLine(r, l) + "\n" + ResultsSummary.axisLine(r, l)));
         List<String> warnings = ResultsSummary.warningLines(r, l);
         StringBuilder sb = new StringBuilder(Messages.get(l, Msg.RES_WARNINGS)).append(":");
         if (warnings.isEmpty()) {
@@ -74,20 +78,19 @@ final class ResultsPanel extends JPanel {
         }
         JTextArea wt = Ui.text(sb.toString());
         if (!warnings.isEmpty()) {
-            wt.setForeground(Ui.WARNING);
+            wt.setForeground(Themes.warning());
         }
+        add(Box.createVerticalStrut(UIScale.scale(6)));
         add(wt);
-        add(Ui.text(Messages.get(l, Msg.RES_SAVED, o.files.sessionFile.getAbsolutePath()) + "\n"
-                + Messages.get(l, Msg.RES_SAVED, o.files.cumulativeFile.getAbsolutePath())));
-        JLabel disclaimer = new JLabel(Messages.get(l, Msg.RES_DISCLAIMER));
-        disclaimer.setFont(disclaimer.getFont().deriveFont(Font.ITALIC));
-        disclaimer.setAlignmentX(Component.LEFT_ALIGNMENT);
-        add(disclaimer);
+        add(Box.createVerticalStrut(UIScale.scale(6)));
+        add(Ui.small(Messages.get(l, Msg.RES_SAVED, o.files.sessionFile.getAbsolutePath()) + "\n"
+                + Messages.get(l, Msg.RES_SAVED, o.files.cumulativeFile.getAbsolutePath()) + "\n"
+                + Messages.get(l, Msg.RES_DISCLAIMER)));
 
-        JButton copy = Ui.button(Messages.get(l, Msg.BTN_COPY), e -> Toolkit.getDefaultToolkit().getSystemClipboard()
-                .setContents(new StringSelection(ResultsSummary.clipboardText(r, l)), null));
+        JButton copy = Ui.primary(Messages.get(l, Msg.BTN_COPY), Icons.Kind.COPY, e -> Toolkit.getDefaultToolkit()
+                .getSystemClipboard().setContents(new StringSelection(ResultsSummary.clipboardText(r, l)), null));
         File dir = o.files.sessionFile.getAbsoluteFile().getParentFile();
-        JButton open = Ui.button(Messages.get(l, Msg.BTN_OPEN_FOLDER), null);
+        JButton open = Ui.button(Messages.get(l, Msg.BTN_OPEN_FOLDER), Icons.of(Icons.Kind.FOLDER), null);
         open.setEnabled(Desktop.isDesktopSupported());
         open.addActionListener(e -> {
             try {
@@ -96,18 +99,18 @@ final class ResultsPanel extends JPanel {
                 open.setEnabled(false);
             }
         });
-        JButton again = Ui.button(Messages.get(l, Msg.BTN_NEW_MEASUREMENT), e -> {
+        JButton again = Ui.button(Messages.get(l, Msg.BTN_NEW_MEASUREMENT), Icons.of(Icons.Kind.REFRESH), e -> {
             w.model().newMeasurement();
             w.refresh();
         });
-        JButton other = Ui.button(Messages.get(l, Msg.BTN_OPEN_OTHER), e -> w.openPhoto());
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 4));
+        JButton other = Ui.button(Messages.get(l, Msg.BTN_OPEN_OTHER), Icons.of(Icons.Kind.OPEN), e -> w.openPhoto());
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(6), UIScale.scale(6)));
         buttons.add(copy);
         buttons.add(open);
         buttons.add(again);
         buttons.add(other);
         buttons.setAlignmentX(Component.LEFT_ALIGNMENT);
-        add(Box.createVerticalStrut(6));
+        add(Box.createVerticalStrut(UIScale.scale(8)));
         add(buttons);
         add(Box.createVerticalGlue());
     }
@@ -122,18 +125,19 @@ final class ResultsPanel extends JPanel {
             }
         };
         JTable t = new JTable(model);
-        t.setRowHeight(22);
+        t.setRowHeight(UIScale.scale(28));
         int total = 0;
         for (int i = 0; i < widths.length && i < cols.length; i++) {
-            t.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
-            total += widths[i];
+            int wd = UIScale.scale(widths[i]);
+            t.getColumnModel().getColumn(i).setPreferredWidth(wd);
+            total += wd;
         }
         JScrollPane s = new JScrollPane(t);
         s.setAlignmentX(Component.LEFT_ALIGNMENT);
         // Tall enough for every row: no hidden last row, no inner scroll bar.
-        int h = t.getTableHeader().getPreferredSize().height + t.getRowHeight() * rows.size() + 6;
-        s.setPreferredSize(new Dimension(Math.max(total, 540), h));
-        s.setMinimumSize(new Dimension(200, h));
+        int h = t.getTableHeader().getPreferredSize().height + t.getRowHeight() * rows.size() + UIScale.scale(6);
+        s.setPreferredSize(new Dimension(Math.max(total, UIScale.scale(540)), h));
+        s.setMinimumSize(new Dimension(UIScale.scale(200), h));
         s.setMaximumSize(new Dimension(Integer.MAX_VALUE, h));
         return s;
     }

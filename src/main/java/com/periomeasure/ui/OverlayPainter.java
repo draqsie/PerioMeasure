@@ -34,6 +34,8 @@ final class OverlayPainter {
     private static final int GAP = 3;
     private static final int ARM = 9;
     private static final int ARM_SELECTED = 14;
+    /** Interface scale (set by {@link Themes}); marker arms grow on high-resolution screens. */
+    static float uiScale = 1f;
 
     private OverlayPainter() {
     }
@@ -138,11 +140,13 @@ final class OverlayPainter {
 
     private static void crosshair(Graphics2D g2, Vec2 p, Color col, int arm, ViewState v) {
         int[] c = v.toScreenPixel(p);
+        int a = Math.round(arm * uiScale);
+        int gap = Math.round(GAP * uiScale);
         g2.setColor(col);
         g2.fillRect(c[0], c[1], 1, 1);
-        g2.drawLine(c[0] - arm, c[1], c[0] - GAP, c[1]);
-        g2.drawLine(c[0] + GAP, c[1], c[0] + arm, c[1]);
-        g2.drawLine(c[0], c[1] - arm, c[0], c[1] - GAP);
-        g2.drawLine(c[0], c[1] + GAP, c[0], c[1] + arm);
+        g2.drawLine(c[0] - a, c[1], c[0] - gap, c[1]);
+        g2.drawLine(c[0] + gap, c[1], c[0] + a, c[1]);
+        g2.drawLine(c[0], c[1] - a, c[0], c[1] - gap);
+        g2.drawLine(c[0], c[1] + gap, c[0], c[1] + a);
     }
 }

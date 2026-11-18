@@ -34,7 +34,6 @@ final class ImageViewer extends JComponent {
     /** A press within this many screen pixels of a point grabs it. */
     static final int HIT_RADIUS = 8;
     private static final int PAN_THRESHOLD = 4;
-    private static final Color BACKGROUND = new Color(40, 42, 46);
 
     private final transient MainWindow window;
     private transient ImagePyramid pyramid;
@@ -231,12 +230,12 @@ final class ImageViewer extends JComponent {
     @Override
     protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g;
-        g2.setColor(BACKGROUND);
+        g2.setColor(Themes.photoBackground());
         g2.fillRect(0, 0, getWidth(), getHeight());
         if (pyramid == null || view() == null) {
             g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-            g2.setColor(new Color(170, 170, 175));
-            g2.setFont(getFont().deriveFont(Font.PLAIN, 18f));
+            g2.setColor(new Color(190, 190, 196));
+            g2.setFont(getFont().deriveFont(Font.PLAIN, Themes.font(5)));
             String s = Messages.get(window.model().settings().language, Msg.VIEWER_EMPTY);
             FontMetrics fm = g2.getFontMetrics();
             g2.drawString(s, (getWidth() - fm.stringWidth(s)) / 2, getHeight() / 2);

@@ -72,9 +72,19 @@ iletişim dili Türkçe.
   metinler `messages.properties` üzerinden UTF-8.
 - **Kalibrasyon referansı:** alın orta hattına yapıştırılmış 24,0 mm çaplı
   dairesel etiket; değer ayarlardan değiştirilebilir.
-- **Arayüz dili:** Türkçe (varsayılan) ve İngilizce. Tüm arayüz metinleri tek
-  bir kaynak dosyada; bir test her anahtarın iki dilde de bulunduğunu
+- **Arayüz dili:** İngilizce (varsayılan; kullanıcı kararı 2026-11-18, önceden
+  Türkçe idi) ve Türkçe, üst bardan seçilir ve hatırlanır. Tercih anahtarı
+  `periomeasure.uiLanguage`; eski `periomeasure.language` anahtarı bilerek
+  okunmaz (eski sürümler her kayıtta "tr" yazıyordu). Tüm arayüz metinleri
+  tek bir kaynak dosyada; bir test her anahtarın iki dilde de bulunduğunu
   doğrular.
+- **Yapıştırma (Ctrl+V / Yapıştır / sürükle-bırak aynı kural):** önce
+  kopyalanmış dosya (orijinal dosya açılır), sonra yol metni, en son piksel
+  görüntüsü. Piksel yapıştırmada piksel birebir korunur ama her zaman
+  `PASTED_IMAGE` uyarısı eklenir (küçültülmüş kopya olabilir; dosya adı/EXIF
+  yok) ve CSV'ye yazılır. Birden fazla fotoğraf kopyalanmışsa hiçbiri
+  açılmaz (yanlış fotoğrafı ölçme riski). Kullanıcının gerçek panosu
+  testlerde asla okunmaz/değiştirilmez.
 - **Öncelikli ölçümler:** PFI, ICD, PFW, PFH. Sonuç tablosunda ve CSV'de ilk
   sırada; erişimi kolay olmalı.
 - **Arayüz basit olmalı** (kullanıcı hekim, yazılımcı değil): ekranda az ve
@@ -376,6 +386,38 @@ JDK 25 ve Fiji Java 8'de geçiyor; `PerioMeasureApp --selftest` gerçek
 pencerede PASS (26 tık + büyüteç ince ayarı; 14/14 ölçüm 2σ içinde, en
 büyük hata 0,008 mm); ekran görüntüleri incelendi. **Kullanıcının elle
 denemesi bekleniyor.**
+
+**Arayüz cilası (2026-11-18, kullanıcı geri bildirimiyle):** yazılar küçük,
+düğmeler sıkışık, dil değiştirilemiyor, Java dosya seçicisinin düğmeleri
+kesiliyordu. Yeni: FlatLaf (Fiji ile gelir, `flatlaf-3.5.1.jar`, `provided`;
+başlatıcı sınıf yoluna ekler) ile aydınlık/karanlık tema (`Themes`, ayarda
+`theme`), varsayılan yazı +3 pt ve yüksek DPI ölçekleme, turkuaz vurgu
+(#1F7A8C), simgeli üst bar (`HeaderBar`: dil açılır listesi, tema düğmesi,
+Ayarlar, Rehber, Hakkında), vektör simgeler (`Icons`), Swing ayarlar
+penceresi (`SettingsDialog`), Windows'un yerel "Aç" penceresi (`FileDialog`),
+ilk açılışta oklu adım adım rehber (`TourOverlay`, 10 durak; F1 / "Rehber";
+`periomeasure.tourDone` tercihi). `SelfTest` artık rehberin her durağını,
+tema ve dil değişimini de sınar ve ekran görüntüsü alır; kullanıcının tema,
+dil ve rehber tercihlerini test sonunda geri yükler. 218 test JDK 25 ve
+Fiji Java 8'de geçiyor; `--selftest` PASS (14/14, en büyük hata 0,007 mm).
+Not: Fiji içinden açıldığında FlatLaf görünümü Fiji'nin Swing pencerelerine
+de uygulanır.
+
+**Yapıştırma, İngilizce varsayılan, uygulama simgesi (2026-11-18):**
+`ClipboardPhoto` (dosya > yol metni > piksel; birden çok fotoğrafta ret),
+Ctrl+V / Shift+Insert, üst barda ve karşılama kartında "Yapıştır" düğmesi,
+sürükle-bırak aynı kuralla (bırakılan veri bırakma anında okunur).
+`PhotoLoader.fromPasted` + `PASTED_IMAGE` uyarısı. Varsayılan dil İngilizce
+(dil listesinde ilk sırada). Kodla çizilen uygulama simgesi `AppIcon`
+(turkuaz kare, göz + ışık refleksi, sarı ölçüm çizgisi; 16–256 px; pencere,
+görev çubuğu, `.ico`). `Create_Desktop_Shortcut.bat`: simgeyi
+`%USERPROFILE%\PerioMeasure\PerioMeasure.ico` olarak üretir ve masaüstüne
+`PerioMeasure.bat`'i (küçültülmüş) açan kısayol koyar; kullanıcı kendisi
+çalıştırır. `SelfTest` sahte pano içeriğiyle piksel ve dosya yapıştırmayı
+da sınar. 234 test JDK 25 ve Fiji Java 8'de geçiyor; `--selftest` PASS
+(14/14, en büyük hata 0,007 mm; yapıştırma OK). Kısayol betiğinin komutları
+geçici klasörde denendi (masaüstüne yazılmadı); kullanıcının çalıştırması
+bekleniyor.
 
 **Sıradaki:** Faz 3 — anotasyonlu PNG, ROI kaydet/aç, pre/post
 karşılaştırma, tekrar modu.

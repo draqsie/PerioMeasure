@@ -43,6 +43,21 @@ class PhotoLoaderTest {
     }
 
     @Test
+    void pastedPixelsAlwaysCarryThePastedImageWarning() {
+        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(30, 20,
+                java.awt.image.BufferedImage.TYPE_INT_RGB);
+        img.setRGB(3, 4, 0x405060);
+        PhotoLoader.Loaded l = PhotoLoader.fromPasted(img, NO_ENV);
+        assertEquals(null, l.file);
+        assertEquals(null, l.dateTaken);
+        assertEquals(0x405060, l.image.getRGB(3, 4) & 0xFFFFFF);
+        assertEquals(WarningCode.PASTED_IMAGE, l.warnings.get(0).code);
+        assertTrue(l.warnings.stream().anyMatch(w -> w.code == WarningCode.IMAGE_TOO_NARROW));
+        assertTrue(PhotoLoader.fromImage(img, NO_ENV).warnings.stream()
+                .noneMatch(w -> w.code == WarningCode.PASTED_IMAGE));
+    }
+
+    @Test
     void heicIsRejectedWithAnExplanation() {
         PhotoLoader.LoadException e = assertThrows(PhotoLoader.LoadException.class,
                 () -> PhotoLoader.load(new File("IMG_0001.HEIC"), NO_ENV));

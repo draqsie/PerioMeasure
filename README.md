@@ -12,8 +12,8 @@ and more).
 **Development status:** Phase 2 — manual calibration, landmark marking,
 results window and CSV export. Automatic sticker detection (Phase 4),
 annotated PNG / ROI sets / pre-post comparison / repeat mode (Phase 3) are
-not yet available. The user interface defaults to Turkish and can be
-switched to English in **Settings**.
+not yet available. The user interface is in English by default and can be
+switched to Turkish in the header bar (the choice is remembered).
 
 ---
 
@@ -53,15 +53,36 @@ fails, no jar is produced.
 - **Double-click `PerioMeasure.bat`** in the project folder: the PerioMeasure
   window opens in a few seconds (it uses Fiji's Java and ImageJ; Fiji itself
   does not open).
+- **Desktop icon:** double-click `Create_Desktop_Shortcut.bat` once. It puts
+  a **PerioMeasure** shortcut with the app icon on your desktop (it runs
+  `PerioMeasure.bat`). Run it again if you move the project folder.
 - Or in Fiji: **Plugins › PerioMeasure › Measure...** (an image open in Fiji
   is loaded automatically) or **Demo...**.
 
-Everything happens in **one window**: toolbar on top, the photo large in the
-middle, guidance / form / results on the right, a status line at the bottom.
+Everything happens in **one window**: a header bar on top (Open photo, Paste,
+Demo face, view controls, **language EN/TR**, **light/dark theme**, Settings,
+**Guide**, About), the photo large in the middle, guidance / form / results
+on the right, a status line at the bottom.
+
+On the very first start a **step-by-step guide** dims the window and points
+with an arrow at each button and area, explaining it in plain words. Open it
+again at any time with **Guide** (or F1).
 
 ### Opening a photo
-- **Open photo…** opens the file chooser in your *Pictures* folder (then the
-  last folder used), or **drag the file onto the window**.
+- **Open photo…** opens Windows' own "Open" dialog in your *Pictures* folder
+  (then the last folder used), or **drag the file onto the window**.
+- **Paste (Ctrl+V):**
+  - **Best:** in File Explorer right-click the photo file → *Copy*, then
+    press Ctrl+V in PerioMeasure. The **original file** is opened (full
+    resolution, EXIF orientation and date), exactly as with *Open photo*.
+    A copied path ("Copy as path") works the same way.
+  - **Copied image pixels** (e.g. *Copy image* in a viewer or browser) are
+    used exactly as copied, but they **may be a reduced copy** and have no
+    file name, date or orientation. PerioMeasure therefore always shows a
+    warning, which is also written to the CSV. Open the original file
+    whenever possible.
+  - If **several photos** were copied, nothing is opened, so that the wrong
+    photo can never be measured by accident: copy only one.
 - JPEG, PNG, TIFF (also 16-bit), BMP. Phone photos are shown upright using
   their EXIF orientation, and the capture date is filled in automatically.
 - iPhone **HEIC** files cannot be read: save them as JPEG
@@ -103,8 +124,8 @@ within the reported uncertainty (✓/✗). Demo results go to
 The original pixels are never changed; all marks are drawn on top.
 
 ### Settings
-**Settings…** (toolbar, or Plugins › PerioMeasure › Settings... in Fiji):
-- **Language**: Türkçe (default) or English.
+Language and theme are switched directly in the header bar and remembered.
+**Settings** (header bar, or Plugins › PerioMeasure › Settings... in Fiji):
 - **Calibration sticker diameter** (default 24.0 mm).
 - **CSV decimal separator**: point (default; fields separated by commas) or
   comma (fields separated by semicolons, as Turkish Excel expects).
@@ -117,8 +138,13 @@ The original pixels are never changed; all marks are drawn on top.
 The app can drive its own window — one click on the photo and one in the
 loupe per point — and compare the results with the true values:
 ```bat
-"%USERPROFILE%\Fiji.app\java\win64\<jdk>\jre\bin\java.exe" -cp "%USERPROFILE%\Fiji.app\jars\ij-1.54p.jar;%USERPROFILE%\Fiji.app\plugins\PerioMeasure_.jar" com.periomeasure.ui.PerioMeasureApp --selftest report.txt
+"%USERPROFILE%\Fiji.app\java\win64\<jdk>\jre\bin\java.exe" -cp "%USERPROFILE%\Fiji.app\jars\ij-1.54p.jar;%USERPROFILE%\Fiji.app\jars\flatlaf-3.5.1.jar;%USERPROFILE%\Fiji.app\plugins\PerioMeasure_.jar" com.periomeasure.ui.PerioMeasureApp --selftest report.txt
 ```
+It also pastes test content (copied pixels and a copied file) through a
+simulated clipboard; your real clipboard is never read or changed.
+
+The app icon is drawn in code (`AppIcon`); `... com.periomeasure.ui.AppIcon
+<file.ico> [preview.png]` writes the Windows icon and a preview picture.
 
 ### Output files
 In the output folder, for every measurement:
