@@ -4,16 +4,17 @@ import com.periomeasure.Version;
 import com.periomeasure.i18n.Language;
 import com.periomeasure.i18n.Messages;
 import com.periomeasure.i18n.Msg;
+import com.periomeasure.io.Settings;
 
 import ij.IJ;
 import ij.plugin.PlugIn;
 
-/** Plugins &gt; PerioMeasure &gt; Hakkında / About — shows version and disclaimer. */
+/** Plugins &gt; PerioMeasure &gt; About — shows version and disclaimer. */
 public class AboutPlugin implements PlugIn {
 
     @Override
     public void run(String arg) {
-        Language lang = Language.DEFAULT; // Phase 2: read from user settings
+        Language lang = Settings.load(new ImageJPrefsStore()).language;
         IJ.showMessage(title(lang), body(lang));
     }
 

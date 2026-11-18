@@ -47,6 +47,19 @@ class ArchitectureTest {
     }
 
     @Test
+    void sessionLogicIsPureJava() throws IOException {
+        List<String> bad = offenders(sources("session"), "ij.", "java.awt", "javax.");
+        assertTrue(bad.isEmpty(), "Forbidden imports in session: " + bad);
+    }
+
+    @Test
+    void ioAndI18nDoNotDependOnImageJ() throws IOException {
+        List<String> bad = offenders(sources("io"), "ij.");
+        bad.addAll(offenders(sources("i18n"), "ij."));
+        assertTrue(bad.isEmpty(), "Forbidden imports: " + bad);
+    }
+
+    @Test
     void syntheticGeneratorDoesNotDependOnImageJ() throws IOException {
         List<String> bad = offenders(sources("synthetic"), "ij.");
         assertTrue(bad.isEmpty(), "Forbidden imports in synthetic: " + bad);

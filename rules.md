@@ -193,7 +193,42 @@ iletişim dili Türkçe.
   sayılır ve kullanıcı uyarılır.
 - Orijinal piksel verisi asla değiştirilmez; tüm işaretlemeler overlay'dir.
 - Piksel koordinat konvansiyonu tek yerde (bkz. 4.1).
-- Görüntü genişliği < 2000 px veya JPEG kalitesi düşükse uyar.
+- Görüntü genişliği < 2000 px veya JPEG kalitesi düşükse uyar (tahmini IJG
+  kalitesi < 85; `JpegQuality`).
+- **Tıklama koordinatı:** ImageJ'nin `offScreenXD(sx)` metodu ekran
+  pikselinin SOL KENARINI verir (0,5/büyütme px sapma). Bunun yerine
+  `ViewMapping.screenToImage` (piksel merkezi) kullanılır; işaretler de
+  `ViewMapping.imageToScreenPixel` ile çizilir.
+- **Yakınlaştırma sırası:** `ImageCanvas.setSourceRect()` büyütmeyi
+  `tuval genişliği / kaynak genişliği` olarak YENİDEN HESAPLAR (ör. 5,97).
+  Önce `setSourceRect`, SONRA `setMagnification` çağrılır; aksi halde
+  büyütme tam sayı olmaz ve tıklama mantığı bozulur (test ile bulundu).
+- (Yukarıdaki iki madde ImageJ penceresi üzerinde çalışan ilk Faz 2
+  arayüzü içindi. 2026-11-18'den beri eklenti KENDİ tek penceresini
+  kullanır; ImageJ yalnızca dosya açmak (Opener) ve Fiji menüsü için
+  kullanılır. Görüntü çizimi ve tıklama dönüşümü `ViewState` +
+  `ViewMapping` ile tek yerde; `PaintingTest` ekranda gösterilen pikselin
+  tıklamanın seçtiği piksel olduğunu her ölçekte doğrular.)
+- `plugins.config` ASCII olmalı; menü etiketleri bu yüzden İngilizce
+  (Measure..., Demo..., Settings..., About), pencere seçili dilde.
+- Pencereli Fiji'de komut satırı `-eval` / `-macro` çalışmadı (test
+  edildi). Pencereli otomatik deneme: Fiji'nin Java'sı + `ij-1.54p.jar` +
+  eklenti jar'ı ile `PerioMeasureApp --selftest <rapor>`: gerçek pencerede
+  her noktayı büyük görüntüde tek tıkla koyar, büyüteçte tek tıkla ince
+  ayar yapar, işaretin doğru piksele çizildiğini denetler, Devam/Bitir
+  düğmelerine basar, sonucu gerçek değerlerle karşılaştırır, rapor ve
+  ekran görüntüleri (`selftest_measuring.png`, `selftest_results.png`)
+  yazar, kapanır. Her UI değişikliğinden sonra çalıştırılır ve ekran
+  görüntülerine bakılır. Süreç yalnızca kendi PID'iyle izlenir. Pencere
+  ekranda açıldığı için gerçek fare imleci fotoğrafın üzerindeyse büyüteç
+  imleci gösterir; test bu yüzden imleç bilgisini sıfırlayıp çizimi aynı
+  EDT görevinde yapar (aksi halde rastgele FAIL verir — 2026-11-18'de görüldü).
+- Kullanıcı başlatıcısı: proje kökündeki `PerioMeasure.bat` (çift tıklama)
+  → tek PerioMeasure penceresi (Fiji açılmaz). Fiji'de
+  `Plugins › PerioMeasure › Measure... / Demo...` aynı pencereyi açar.
+- **Asla** tüm `java` süreçlerini toplu kapatan komut çalıştırılmaz
+  (kullanıcının başka Java uygulamaları kapanabilir); yalnızca kendi
+  başlatılan sürecin PID'i hedeflenir.
 
 ---
 
@@ -230,7 +265,20 @@ iletişim dili Türkçe.
   beklenen değerler), `SyntheticRenderer` (etiket tam alan kapsamasıyla,
   8×8 süper örnekleme), `SyntheticImageWriter` (PNG + doğruluk CSV'si),
   `SyntheticImageTool` (standart set → `output/synthetic`).
-- `com.periomeasure.io` — CSV, karşılaştırma, tekrar modu dışa aktarımı.
+- `com.periomeasure.io` — ImageJ'siz: `Settings` (+`PrefsStore`),
+  `Formats` (ekran: TR virgül/EN nokta), `ResultCsv` (UTF-8 BOM, CRLF,
+  RFC 4180 tırnaklama, formül enjeksiyonu koruması, virgül ondalıkta `;`
+  ayırıcı; oturum dosyası + kümülatif dosya, başlık farklıysa yeni
+  numaralı dosya), `MeasurementRecord`, `FileHash` (dosya ADI SHA-256),
+  `CloudFolders`, `JpegQuality`, `ImageChecks`. (Faz 3: karşılaştırma,
+  tekrar modu.)
+- `com.periomeasure.session` — saf Java (ImageJ ve AWT YOK): `StepPlan`
+  (kalibrasyon → [tek göz çizgi] → tüm pupiller → göz başına kapaklar,
+  kantuslar, isteğe bağlılar), `MeasurementSession` (yerleştirme,
+  sürükleme, geri al, ileri/geri/atla, canlı elips, hesaplama),
+  `ClickPolicy` (tek tık yerleştirir, nokta üstüne basmak sürükler; adım
+  dolunca kendiliğinden ilerler — etiket kenarı ve kontur "Devam" bekler),
+  `ViewMapping`, `ZoomPlan` (artık kullanılmıyor; Faz 3'te kaldırılabilir).
 - `com.periomeasure.i18n` — TR/EN metinler. Tek dosya:
   `src/main/resources/com/periomeasure/i18n/messages.properties`
   (`<dil>.<anahtar>=<metin>`, UTF-8). Anahtarlar `Msg` enum'unda; yeni metin
@@ -238,7 +286,26 @@ iletişim dili Türkçe.
   anahtarı ve yer tutucu uyumsuzluğunu yakalar. `MessageFormat`
   KULLANILMAZ (Türkçe kesme işaretini yutar); `Messages.format` yalnızca
   `{0}` değiştirir.
-- `com.periomeasure.ui` — ImageJ/Fiji eklentileri (`ij.plugin.PlugIn`).
+- `com.periomeasure.ui` — tek pencereli uygulama (Swing) + Fiji menüsü:
+  `PerioMeasureApp` (giriş noktası, tek pencere, `--selftest`),
+  `MainWindow` (araç çubuğu, büyük görüntü, sağ panel, durum çubuğu,
+  sürükle-bırak, dosya seçici Resimler klasöründe başlar), `AppModel`
+  (SWING'SİZ tüm iş akışı: NO_IMAGE → SETUP → MEASURING → RESULTS, tek tık,
+  otomatik ilerleme, seçili nokta, büyüteçle ince ayar, sürükleme, bitirme;
+  `AppModelTest`), `ImageViewer` (tekerlek = yakınlaştır, boş alan sürükle =
+  kaydır, nokta sürükle = taşı), `LoupeView` (4–8× büyüteç; imleç
+  fotoğraftayken orayı, değilse seçili noktayı gösterir; içinde sürükleyerek
+  1/zoom px ince ayar), `ViewState`, `ImagePyramid` (büyük fotoğraf için
+  küçültülmüş kopyalar; yalnız görüntü), `ImagePainter`, `OverlayPainter`,
+  `PhotoLoader` (ImageJ Opener; EXIF yönü uygulanır; HEIC açıklamalı ret),
+  `WelcomePanel`, `SetupPanel`, `StepsPanel` (+`PanelState`),
+  `ResultsPanel` (+`ResultsSummary`), `SettingsDialog`, `MeasurePlugin`,
+  `DemoPlugin`, `SettingsPlugin`, `AboutPlugin`, `ImageJPrefsStore`,
+  `SelfTest`.
+- Çıktı klasörü: Ayarlar'da verilmişse o (bulutsa uyarı CSV'ye yazılır);
+  verilmemişse fotoğrafın yanında `output`, ama fotoğraf bulut klasöründeyse
+  `%USERPROFILE%\PerioMeasure\output` (sonuçlar buluta gitmesin). Deneme
+  yüzleri: `%USERPROFILE%\PerioMeasure\demo-output`.
 - Komutlar `src/main/resources/plugins.config` ile `Plugins > PerioMeasure`
   menüsüne kaydedilir.
 - Sürüm tek kaynaktan: `pom.xml` → (resource filtering)
@@ -286,7 +353,32 @@ kapsıyor; en büyük IPD hatası < 0,15 mm. Mutasyon kontrolü yapıldı: later
 yön işareti ve piksel köşe/merkez hatası bilerek eklendiğinde testler
 yakaladı. README İngilizceye çevrildi.
 
-**Sıradaki:** Faz 2 — manuel kalibrasyon + landmark UI + CSV.
+**Tamamlanan:** Faz 2 (2026-11-18, sürüm 0.2.0) — Ayarlar, yeni ölçüm
+diyaloğu, adım paneli, iki tıklamalı (yakınlaştır → kesin nokta) manuel
+kalibrasyon ve landmark işaretleme, sürükleme, geri al, canlı elips,
+pupil dikey kılavuz çizgisi, sonuç penceresi (ICD + PFI önce), panoya
+kopyalama, CSV (oturum + kümülatif), görüntü kontrolleri (genişlik, JPEG,
+dosya kalibrasyonu, bulut klasörü). 193 test JDK 25 ve Fiji Java 8'de
+geçiyor; gerçek ImageJ tuvali ekran dışı boyanarak tıklama–görüntü–işaret
+hizası piksel düzeyinde doğrulandı. Menü kayıtları Fiji'de (headless)
+doğrulandı. Kullanıcı isteğiyle (2026-11-18) kolay deneme eklendi:
+Demo komutu ve sonuçta doğrulama tablosu.
+
+**Faz 2 arayüz yeniden tasarımı (2026-11-18, kullanıcı geri bildirimiyle):**
+kullanıcı iki tıklamalı yakınlaştırmayı zahmetli, ayrı ImageJ pencerelerini
+dağınık buldu ve gerçek fotoğrafı seçebilmek istedi. Yeni: tek pencere
+(`PerioMeasure.bat` veya Fiji menüsü), tek tıkla yerleştirme + otomatik
+ilerleme, 4–8× büyüteçte sürükleyerek ince ayar (spesifikasyondaki "her
+tıklamada 4–8× büyütme" büyüteçle karşılanır), tekerlekle yakınlaştırma,
+sürükleyerek kaydırma, dosya seçici (Resimler) + sürükle-bırak, EXIF yönü
+ve çekim tarihi, HEIC uyarısı, bulut fotoğrafında yerel çıktı. 217 test
+JDK 25 ve Fiji Java 8'de geçiyor; `PerioMeasureApp --selftest` gerçek
+pencerede PASS (26 tık + büyüteç ince ayarı; 14/14 ölçüm 2σ içinde, en
+büyük hata 0,008 mm); ekran görüntüleri incelendi. **Kullanıcının elle
+denemesi bekleniyor.**
+
+**Sıradaki:** Faz 3 — anotasyonlu PNG, ROI kaydet/aç, pre/post
+karşılaştırma, tekrar modu.
 
 **Faz 1'den öğrenilen (Faz 2 için önemli):** Uzun mesafelerin (IPD, ICD)
 doğruluğunu çoğunlukla etiketin görüntüdeki piksel boyutu ve kenar tıklama
@@ -298,7 +390,8 @@ sayısı belirler. Etiket ≥ 600 px ve ≥ 16–24 kenar noktası önerilmeli.
   dosyayı açıkça okumalıdır.
 - İsteğe bağlı ölçüm tanımlarının (TPS, kaş yüksekliği, SSS/ISS; bkz. 4.3)
   kullanıcı tarafından teyidi.
-- Kullanıcı `git init` yapacak.
+- Faz 2'nin pencereli Fiji'de kullanıcı tarafından denenmesi (sentetik
+  görüntüler: `output/synthetic/*.png`, gerçek değerler `*_truth.csv`).
 - Proje klasörü OneDrive altında (`OneDrive\Desktop\PerioMeasure`);
   `samples/` buraya konursa fotoğraflar buluta gider. Kullanıcıya taşıma
   adımları anlatıldı; hedef `C:\dev\PerioMeasure`. Taşınmadan gerçek
@@ -312,7 +405,7 @@ sayısı belirler. Etiket ≥ 600 px ve ≥ 16–24 kenar noktası önerilmeli.
   (kullanıcının commit'i bekleniyor)
 - **Faz 2:** Manuel kalibrasyon + landmark UI + PFW, PFH, MRD1, MRD2,
   PFH/PFW, kantal açı + CSV + Fiji kurulum talimatı. Sentetik görüntülerle
-  denenebilir.
+  denenebilir. ✅ (kullanıcı denemesi ve commit'i bekleniyor)
 - **Faz 3:** Anotasyonlu PNG, ROI kaydet/aç, pre/post karşılaştırma, tekrar
   modu.
 - **Faz 4:** Otomatik etiket algılama (önce sentetik). Faza gelince

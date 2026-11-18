@@ -18,5 +18,17 @@ public enum WarningCode {
     /** Upper lid margin not above the lower lid margin. value = PFH in mm. */
     NONPOSITIVE_PFH,
     /** A lid margin point is more than 1 mm from the pupil's vertical line. value = offset in mm. */
-    LID_POINT_OFF_PUPIL_AXIS
+    LID_POINT_OFF_PUPIL_AXIS,
+    /** Image narrower than 2000 px. value = width in px. */
+    IMAGE_TOO_NARROW,
+    /** Estimated JPEG quality below the threshold. value = estimated IJG quality (1-100). */
+    JPEG_LOW_QUALITY,
+    /** The image file carries its own spatial calibration, which is ignored. value = NaN. */
+    FILE_CALIBRATION_IGNORED,
+    /** The photograph is in a cloud-synchronised folder. detail = provider name. */
+    CLOUD_FOLDER_INPUT,
+    /** The output folder is cloud-synchronised. detail = provider name. */
+    CLOUD_FOLDER_OUTPUT,
+    /** The photo was shown rotated/mirrored as its EXIF orientation requests. value = EXIF orientation (2-8). */
+    EXIF_ORIENTATION_APPLIED
 }
